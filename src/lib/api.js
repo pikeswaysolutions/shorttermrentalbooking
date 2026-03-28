@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { differenceInDays } from 'date-fns';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -8,18 +9,20 @@ const DEFAULT_CONFIRMATION_PAGE = {
   buttons: [{ label: 'Back to Home', url: '/', style: 'primary' }]
 };
 
-function mapEventTypeFromDb(row) {
+function mapPropertyFromDb(row) {
   const cp = row.confirmation_page;
   const hasConfirmation = cp && (cp.title || cp.message || cp.buttons);
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    baseRate: Number(row.base_rate),
-    minDuration: row.min_duration,
-    cooldownHours: row.cooldown_hours,
-    active: row.active,
-    color: row.color,
+    baseNightlyRate: Number(row.base_nightly_rate),
+    cleaningFee: Number(row.cleaning_fee),
+    minNights: row.min_nights,
+    maxGuests: row.max_guests,
+    imageUrl: row.image_url,
+    isActive: row.is_active,
+    themeColor: row.theme_color,
     emailTemplates: row.email_templates || {},
     confirmationPage: hasConfirmation
       ? { ...DEFAULT_CONFIRMATION_PAGE, ...cp, buttons: cp.buttons || DEFAULT_CONFIRMATION_PAGE.buttons }
@@ -29,15 +32,17 @@ function mapEventTypeFromDb(row) {
   };
 }
 
-function mapEventTypeToDb(data) {
+function mapPropertyToDb(data) {
   return {
     name: data.name,
     description: data.description,
-    base_rate: Number(data.baseRate),
-    min_duration: Number(data.minDuration),
-    cooldown_hours: Number(data.cooldownHours),
-    active: data.active,
-    color: data.color,
+    base_nightly_rate: Number(data.baseNightlyRate),
+    cleaning_fee: Number(data.cleaningFee),
+    min_nights: Number(data.minNights),
+    max_guests: Number(data.maxGuests),
+    image_url: data.imageUrl || null,
+    is_active: data.isActive,
+    theme_color: data.themeColor,
     email_templates: data.emailTemplates || {},
     confirmation_page: data.confirmationPage || {},
     updated_at: new Date().toISOString(),
@@ -48,22 +53,33 @@ function mapPricingRuleFromDb(row) {
   return {
     id: row.id,
     name: row.name,
-    eventTypeId: row.event_type_id,
+    propertyId: row.property_id,
+    ruleType: row.rule_type,
+    dayOfWeek: row.day_of_week,
+    specificDate: row.specific_date,
+    startDate: row.start_date,
+    endDate: row.end_date,
     days: row.days || [],
-    startTime: row.start_time?.slice(0, 5),
-    endTime: row.end_time?.slice(0, 5),
-    hourlyRate: Number(row.hourly_rate),
+    nightlyRate: Number(row.nightly_rate),
+    priority: row.priority,
+    isActive: row.is_active,
+    createdAt: row.created_at,
   };
 }
 
 function mapPricingRuleToDb(data) {
   return {
     name: data.name,
-    event_type_id: data.eventTypeId || null,
-    days: data.days,
-    start_time: data.startTime,
-    end_time: data.endTime,
-    hourly_rate: Number(data.hourlyRate),
+    property_id: data.propertyId || null,
+    rule_type: data.ruleType,
+    day_of_week: data.dayOfWeek !== undefined ? data.dayOfWeek : null,
+    specific_date: data.specificDate || null,
+    start_date: data.startDate || null,
+    end_date: data.endDate || null,
+    days: data.days || [],
+    nightly_rate: Number(data.nightlyRate),
+    priority: Number(data.priority || 0),
+    is_active: data.isActive !== false,
     updated_at: new Date().toISOString(),
   };
 }
@@ -76,7 +92,7 @@ function mapAddOnFromDb(row) {
     price: Number(row.price),
     type: row.type,
     active: row.active,
-    eventTypeIds: row.event_type_ids || [],
+    propertyIds: row.property_ids || [],
   };
 }
 
@@ -87,7 +103,7 @@ function mapAddOnToDb(data) {
     price: Number(data.price),
     type: data.type,
     active: data.active,
-    event_type_ids: data.eventTypeIds || [],
+    property_ids: data.propertyIds || [],
     updated_at: new Date().toISOString(),
   };
 }
@@ -96,24 +112,19 @@ function mapBlockedDateFromDb(row) {
   return {
     id: row.id,
     date: row.date,
+    propertyId: row.property_id,
     reason: row.reason,
-    isFullDay: row.is_full_day,
-    startTime: row.start_time?.slice(0, 5) || null,
-    endTime: row.end_time?.slice(0, 5) || null,
   };
 }
 
-function mapBookingFromDb(row, eventTypes) {
-  const eventType = eventTypes?.find(et => et.id === row.event_type_id) || null;
+function mapBookingFromDb(row, properties) {
+  const property = properties?.find(p => p.id === row.property_id) || null;
   return {
     id: row.id,
-    eventType,
-    eventTypeId: row.event_type_id,
-    date: row.date,
-    startTime: row.start_time?.slice(0, 5),
-    endTime: row.end_time?.slice(0, 5),
-    startDate: row.start_date,
-    endDate: row.end_date,
+    property,
+    propertyId: row.property_id,
+    checkInDate: row.check_in_date,
+    checkOutDate: row.check_out_date,
     contactName: row.contact_name,
     contactEmail: row.contact_email,
     contactPhone: row.contact_phone,
@@ -139,6 +150,8 @@ function mapSettingsFromDb(row) {
     accentColor: row.accent_color,
     companyName: row.company_name,
     logo: row.logo,
+    standardCheckInTime: row.standard_check_in_time,
+    standardCheckOutTime: row.standard_check_out_time,
     rentalPolicies: row.rental_policies || {},
     apiKeys: {
       resendApiKey: row.api_keys_encrypted
@@ -154,77 +167,113 @@ function maskApiKey(key) {
   return key.slice(0, 3) + '****' + key.slice(-4);
 }
 
-export function calculatePriceServer(eventType, startDateStr, endDateStr, rules) {
-  if (!startDateStr || !endDateStr) return 0;
+export function calculatePriceServer(property, checkInDate, checkOutDate, rules, selectedAddOns = [], addOns = []) {
+  if (!checkInDate || !checkOutDate || !property) return 0;
 
-  let totalPrice = 0;
-  let current = new Date(startDateStr);
-  const end = new Date(endDateStr);
+  const checkIn = new Date(checkInDate);
+  const checkOut = new Date(checkOutDate);
+  const nights = differenceInDays(checkOut, checkIn);
 
-  while (current < end) {
-    const dayOfWeek = current.getDay();
-    const hours = current.getHours().toString().padStart(2, '0');
-    const mins = current.getMinutes().toString().padStart(2, '0');
-    const timeString = `${hours}:${mins}`;
+  if (nights < 1) return 0;
+
+  let total = 0;
+
+  for (let i = 0; i < nights; i++) {
+    const currentDate = new Date(checkIn);
+    currentDate.setDate(currentDate.getDate() + i);
+    const dayOfWeek = currentDate.getDay();
+    const dateString = currentDate.toISOString().split('T')[0];
 
     const matchingRule = rules.find(rule => {
-      if (rule.eventTypeId && rule.eventTypeId !== eventType.id) return false;
-      if (rule.days && !rule.days.includes(dayOfWeek)) return false;
-      if (rule.startTime && rule.endTime) {
-        return timeString >= rule.startTime && timeString < rule.endTime;
+      if (!rule.isActive) return false;
+      if (rule.propertyId && rule.propertyId !== property.id) return false;
+
+      if (rule.ruleType === 'date_override') {
+        return rule.specificDate === dateString;
       }
-      return true;
+
+      if (rule.ruleType === 'date_range') {
+        return dateString >= rule.startDate && dateString <= rule.endDate;
+      }
+
+      if (rule.ruleType === 'day_of_week') {
+        if (rule.dayOfWeek !== null && rule.dayOfWeek !== undefined) {
+          return rule.dayOfWeek === dayOfWeek;
+        }
+        if (rule.days && rule.days.length > 0) {
+          return rule.days.includes(dayOfWeek);
+        }
+      }
+
+      return false;
     });
 
-    const hourlyRate = matchingRule ? matchingRule.hourlyRate : (eventType.baseRate || 0);
-    totalPrice += hourlyRate / 2;
-    current = new Date(current.getTime() + 30 * 60 * 1000);
+    const nightlyRate = matchingRule ? matchingRule.nightlyRate : property.baseNightlyRate;
+    total += nightlyRate;
   }
 
-  return totalPrice;
+  total += property.cleaningFee || 0;
+
+  selectedAddOns.forEach(addOnId => {
+    const addOn = addOns.find(a => a.id === addOnId);
+    if (addOn) {
+      if (addOn.type === 'flat') {
+        total += addOn.price;
+      } else if (addOn.type === 'per_night') {
+        total += addOn.price * nights;
+      }
+    }
+  });
+
+  return total;
 }
 
-// ============ EVENT TYPES ============
+// ============ PROPERTIES (formerly EVENT TYPES) ============
 
-export async function fetchEventTypes() {
+export async function fetchProperties() {
   const { data, error } = await supabase
-    .from('event_types')
+    .from('properties')
     .select('*')
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return (data || []).map(mapEventTypeFromDb);
+  return (data || []).map(mapPropertyFromDb);
 }
 
-export async function createEventType(eventTypeData) {
-  const dbData = mapEventTypeToDb(eventTypeData);
+export async function createProperty(propertyData) {
+  const dbData = mapPropertyToDb(propertyData);
   const { data, error } = await supabase
-    .from('event_types')
+    .from('properties')
     .insert(dbData)
     .select()
     .single();
   if (error) throw error;
-  return mapEventTypeFromDb(data);
+  return mapPropertyFromDb(data);
 }
 
-export async function updateEventType(id, eventTypeData) {
-  const dbData = mapEventTypeToDb(eventTypeData);
+export async function updateProperty(id, propertyData) {
+  const dbData = mapPropertyToDb(propertyData);
   const { data, error } = await supabase
-    .from('event_types')
+    .from('properties')
     .update(dbData)
     .eq('id', id)
     .select()
     .single();
   if (error) throw error;
-  return mapEventTypeFromDb(data);
+  return mapPropertyFromDb(data);
 }
 
-export async function deleteEventType(id) {
+export async function deleteProperty(id) {
   const { error } = await supabase
-    .from('event_types')
+    .from('properties')
     .delete()
     .eq('id', id);
   if (error) throw error;
 }
+
+export const fetchEventTypes = fetchProperties;
+export const createEventType = createProperty;
+export const updateEventType = updateProperty;
+export const deleteEventType = deleteProperty;
 
 // ============ PRICING RULES ============
 
@@ -232,7 +281,7 @@ export async function fetchPricingRules() {
   const { data, error } = await supabase
     .from('pricing_rules')
     .select('*')
-    .order('created_at', { ascending: true });
+    .order('priority', { ascending: false });
   if (error) throw error;
   return (data || []).map(mapPricingRuleFromDb);
 }
@@ -326,10 +375,8 @@ export async function createBlockedDate(blockData) {
     .from('blocked_dates')
     .insert({
       date: blockData.date,
+      property_id: blockData.propertyId || null,
       reason: blockData.reason || 'Manually Blocked',
-      is_full_day: blockData.isFullDay !== false,
-      start_time: blockData.startTime || null,
-      end_time: blockData.endTime || null,
     })
     .select()
     .single();
@@ -364,6 +411,8 @@ export async function updateSettings(settingsData) {
     accent_color: settingsData.accentColor,
     company_name: settingsData.companyName,
     logo: settingsData.logo || null,
+    standard_check_in_time: settingsData.standardCheckInTime || '15:00',
+    standard_check_out_time: settingsData.standardCheckOutTime || '11:00',
     rental_policies: settingsData.rentalPolicies || {},
     updated_at: new Date().toISOString(),
   };
@@ -387,72 +436,67 @@ export async function updateSettings(settingsData) {
 
 // ============ BOOKINGS ============
 
-export async function fetchBookings(eventTypes) {
+export async function fetchBookings(properties) {
   const { data, error } = await supabase
     .from('bookings')
     .select('*')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data || []).map(row => mapBookingFromDb(row, eventTypes));
+  return (data || []).map(row => mapBookingFromDb(row, properties));
 }
 
 export async function fetchBookingsForCalendar() {
   const { data, error } = await supabase
     .from('bookings')
-    .select('id, date, start_time, end_time, event_type_id, status')
+    .select('id, check_in_date, check_out_date, property_id, status')
     .in('status', ['pending', 'confirmed']);
   if (error) throw error;
   return (data || []).map(row => ({
     id: row.id,
-    date: row.date,
-    startTime: row.start_time?.slice(0, 5),
-    endTime: row.end_time?.slice(0, 5),
-    eventTypeId: row.event_type_id,
+    checkInDate: row.check_in_date,
+    checkOutDate: row.check_out_date,
+    propertyId: row.property_id,
     status: row.status,
   }));
 }
 
-export async function createBooking(bookingData, pricingRules, addOns, eventTypes) {
+export async function createBooking(bookingData, pricingRules, addOns, properties) {
   if (!bookingData.contactName?.trim()) throw new Error('Full name is required.');
   if (!bookingData.contactEmail?.trim()) throw new Error('Email is required.');
   if (!EMAIL_REGEX.test(bookingData.contactEmail)) throw new Error('Invalid email format.');
   if (!bookingData.contactPhone?.trim()) throw new Error('Phone number is required.');
   if (!bookingData.guestCount || bookingData.guestCount < 1) throw new Error('Guest count must be at least 1.');
   if (!bookingData.descriptionOfUse?.trim()) throw new Error('Description of use is required.');
-  if (!bookingData.eventType?.id) throw new Error('Event type is required.');
+  if (!bookingData.property?.id) throw new Error('Property is required.');
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const bookingDate = new Date(bookingData.date + 'T00:00:00');
-  if (bookingDate < today) throw new Error('Cannot book dates in the past.');
+  const checkInDate = new Date(bookingData.checkInDate + 'T00:00:00');
+  if (checkInDate < today) throw new Error('Cannot book dates in the past.');
 
-  if (bookingData.startTime >= bookingData.endTime) throw new Error('End time must be after start time.');
-
-  const startDate = new Date(`${bookingData.date}T${bookingData.startTime}`);
-  const endDate = new Date(`${bookingData.date}T${bookingData.endTime}`);
-  const durationHours = (endDate - startDate) / (1000 * 60 * 60);
-
-  if (durationHours < bookingData.eventType.minDuration) {
-    throw new Error(`Minimum duration is ${bookingData.eventType.minDuration} hours for this event type.`);
+  if (bookingData.checkInDate >= bookingData.checkOutDate) {
+    throw new Error('Check-out date must be after check-in date.');
   }
 
-  let totalPrice = calculatePriceServer(bookingData.eventType, startDate.toISOString(), endDate.toISOString(), pricingRules);
+  const nights = differenceInDays(new Date(bookingData.checkOutDate), new Date(bookingData.checkInDate));
 
-  (bookingData.selectedAddOns || []).forEach(addOnId => {
-    const addon = addOns.find(a => a.id === addOnId);
-    if (addon) {
-      if (addon.type === 'flat') totalPrice += addon.price;
-      if (addon.type === 'hourly') totalPrice += addon.price * durationHours;
-    }
-  });
+  if (nights < bookingData.property.minNights) {
+    throw new Error(`Minimum stay is ${bookingData.property.minNights} night${bookingData.property.minNights > 1 ? 's' : ''} for this property.`);
+  }
+
+  const totalPrice = calculatePriceServer(
+    bookingData.property,
+    bookingData.checkInDate,
+    bookingData.checkOutDate,
+    pricingRules,
+    bookingData.selectedAddOns || [],
+    addOns
+  );
 
   const { data, error } = await supabase.rpc('create_booking_safe', {
-    p_event_type_id: bookingData.eventType.id,
-    p_date: bookingData.date,
-    p_start_time: bookingData.startTime,
-    p_end_time: bookingData.endTime,
-    p_start_date: startDate.toISOString(),
-    p_end_date: endDate.toISOString(),
+    p_property_id: bookingData.property.id,
+    p_check_in_date: bookingData.checkInDate,
+    p_check_out_date: bookingData.checkOutDate,
     p_contact_name: bookingData.contactName.trim(),
     p_contact_email: bookingData.contactEmail.trim().toLowerCase(),
     p_contact_phone: bookingData.contactPhone.trim(),
@@ -463,15 +507,14 @@ export async function createBooking(bookingData, pricingRules, addOns, eventType
     p_total_price: totalPrice,
     p_agreed_to_policies: true,
     p_policies_viewed_at: new Date().toISOString(),
-    p_cooldown_hours: bookingData.eventType.cooldownHours || 1,
   });
 
   if (error) {
-    if (error.message?.includes('TIME_CONFLICT')) {
-      throw new Error('This time slot conflicts with an existing booking. Please choose a different time.');
+    if (error.message?.includes('DATE_CONFLICT')) {
+      throw new Error('These dates conflict with an existing booking. Please choose different dates.');
     }
     if (error.message?.includes('BLOCKED_DATE')) {
-      throw new Error('This date/time is blocked and unavailable for booking.');
+      throw new Error('One or more dates in this range are blocked and unavailable for booking.');
     }
     if (error.message?.includes('bookings_no_duplicate')) {
       throw new Error('A booking with these details already exists.');
@@ -487,7 +530,7 @@ export async function createBooking(bookingData, pricingRules, addOns, eventType
     .eq('id', bookingId)
     .single();
 
-  return mapBookingFromDb(newBooking, eventTypes);
+  return mapBookingFromDb(newBooking, properties);
 }
 
 export async function updateBookingStatus(id, status, userId) {
@@ -520,7 +563,7 @@ export async function updateBookingStatus(id, status, userId) {
   return data;
 }
 
-export async function updateBookingDetails(id, bookingData, version, userId, pricingRules, addOns, eventTypes) {
+export async function updateBookingDetails(id, bookingData, version, userId, pricingRules, addOns, properties) {
   const { data: existing, error: fetchError } = await supabase
     .from('bookings')
     .select('*')
@@ -532,28 +575,21 @@ export async function updateBookingDetails(id, bookingData, version, userId, pri
     throw new Error('VERSION_MISMATCH: This booking was modified by another user. Please refresh and try again.');
   }
 
-  const eventType = eventTypes?.find(et => et.id === (bookingData.eventTypeId || bookingData.eventType?.id || existing.event_type_id));
+  const property = properties?.find(p => p.id === (bookingData.propertyId || bookingData.property?.id || existing.property_id));
 
   let totalPrice = existing.total_price;
-  const dateChanged = bookingData.date !== existing.date;
-  const timeChanged = bookingData.startTime !== existing.start_time?.slice(0, 5) || bookingData.endTime !== existing.end_time?.slice(0, 5);
-  const typeChanged = (bookingData.eventTypeId || bookingData.eventType?.id) !== existing.event_type_id;
+  const datesChanged = bookingData.checkInDate !== existing.check_in_date || bookingData.checkOutDate !== existing.check_out_date;
+  const propertyChanged = (bookingData.propertyId || bookingData.property?.id) !== existing.property_id;
 
-  if ((dateChanged || timeChanged || typeChanged) && eventType && pricingRules) {
-    const startDate = new Date(`${bookingData.date}T${bookingData.startTime}`);
-    const endDate = new Date(`${bookingData.date}T${bookingData.endTime}`);
-    const durationHours = (endDate - startDate) / (1000 * 60 * 60);
-
-    totalPrice = calculatePriceServer(eventType, startDate.toISOString(), endDate.toISOString(), pricingRules);
-
-    const addOnIds = bookingData.selectedAddOns || existing.selected_add_on_ids || [];
-    addOnIds.forEach(addOnId => {
-      const addon = addOns?.find(a => a.id === addOnId);
-      if (addon) {
-        if (addon.type === 'flat') totalPrice += addon.price;
-        if (addon.type === 'hourly') totalPrice += addon.price * durationHours;
-      }
-    });
+  if ((datesChanged || propertyChanged) && property && pricingRules) {
+    totalPrice = calculatePriceServer(
+      property,
+      bookingData.checkInDate,
+      bookingData.checkOutDate,
+      pricingRules,
+      bookingData.selectedAddOns || existing.selected_add_on_ids || [],
+      addOns
+    );
   }
 
   const updateData = {
@@ -563,19 +599,13 @@ export async function updateBookingDetails(id, bookingData, version, userId, pri
     guest_count: bookingData.guestCount,
     description_of_use: bookingData.descriptionOfUse,
     notes: bookingData.notes || null,
-    date: bookingData.date,
-    start_time: bookingData.startTime,
-    end_time: bookingData.endTime,
-    event_type_id: bookingData.eventTypeId || bookingData.eventType?.id || existing.event_type_id,
+    check_in_date: bookingData.checkInDate,
+    check_out_date: bookingData.checkOutDate,
+    property_id: bookingData.propertyId || bookingData.property?.id || existing.property_id,
     total_price: totalPrice,
     version: existing.version + 1,
     updated_at: new Date().toISOString(),
   };
-
-  if (dateChanged || timeChanged) {
-    updateData.start_date = new Date(`${bookingData.date}T${bookingData.startTime}`).toISOString();
-    updateData.end_date = new Date(`${bookingData.date}T${bookingData.endTime}`).toISOString();
-  }
 
   const { data, error } = await supabase
     .from('bookings')
@@ -593,8 +623,8 @@ export async function updateBookingDetails(id, bookingData, version, userId, pri
   }
 
   await logAudit('booking', id, 'updated', userId,
-    { contact_name: existing.contact_name, date: existing.date, status: existing.status },
-    { contact_name: updateData.contact_name, date: updateData.date }
+    { contact_name: existing.contact_name, check_in_date: existing.check_in_date, status: existing.status },
+    { contact_name: updateData.contact_name, check_in_date: updateData.check_in_date }
   );
 
   return data;
@@ -653,7 +683,6 @@ async function logAudit(entityType, entityId, action, performedBy, previousValue
       new_value: newValue || null,
     });
   } catch {
-    // audit logging should never block operations
   }
 }
 
