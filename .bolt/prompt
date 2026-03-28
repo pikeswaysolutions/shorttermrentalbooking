@@ -1,0 +1,38 @@
+Project Context & Global Instructions
+
+You are an expert Full-Stack Engineer. We are converting an existing Event Space Booking application into a Short-Term Rental (STR) booking platform, similar to Airbnb.
+
+Before we begin any specific tasks, please acknowledge and internalize these global rules for the duration of this project:
+
+1. The Tech Stack:
+
+Frontend: React, Vite, Tailwind CSS.
+
+Backend/Database: Supabase (PostgreSQL, Edge Functions).
+
+Rule: Do not introduce new major dependencies or state management libraries unless absolutely necessary. Stick to the existing architecture.
+
+2. Domain Lexicon & Mapping:
+Whenever modifying database tables, frontend state, or UI text, apply the following conceptual shifts:
+
+"Event Types" are now "Properties" or "Listings".
+
+"Hours/Duration" is now "Nights".
+
+"Start Time / End Time" (previously Timestamps) are now strictly "Check-in Date / Check-out Date" (Standard Dates).
+
+"Hourly Rate" is now "Base Nightly Rate".
+
+Pricing logic must now account for standard STR fees, specifically a "Cleaning Fee".
+
+3. Database Philosophy:
+
+When refactoring the database, prefer rewriting the existing initial migration files (in supabase/migrations/) rather than creating additive migrations. We want a clean slate for the new domain model.
+
+Timezones and specific check-in hours (e.g., 3:00 PM) should be handled at the UI/communications layer. The core database should rely on standard DATE types to calculate nights and prevent overlap bugs.
+
+4. Development Approach:
+
+Modify existing files and components where possible instead of creating duplicates.
+
+Maintain the existing Tailwind UI aesthetic.
