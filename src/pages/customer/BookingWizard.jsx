@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, set } from 'date-fns';
+import { format, differenceInDays, parseISO } from 'date-fns';
 import { useStore } from '../../context/StoreContext';
 import { Button } from '../../components/ui/Button';
 import { calculatePrice } from '../../utils/pricingEngine';
@@ -9,27 +9,11 @@ import SafeIcon from '../../common/SafeIcon';
 import { cn, formatCurrency } from '../../lib/utils';
 import { useSearchParams } from 'react-router-dom';
 
-const steps = ['Event Type', 'Date & Time', 'Add-ons', 'Review'];
-
-const generateTimeSlots = () => {
-  const slots = [];
-  for (let i = 0; i < 24 * 2; i++) {
-    const minutes = i * 30;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    const timeString = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    const date = set(new Date(), { hours, minutes: mins, seconds: 0 });
-    const label = format(date, 'h:mm a');
-    slots.push({ value: timeString, label });
-  }
-  return slots;
-};
-
-const TIME_SLOTS = generateTimeSlots();
+const steps = ['Property', 'Dates & Guests', 'Add-ons', 'Review'];
 
 const BookingWizard = () => {
   const [searchParams] = useSearchParams();
-  const { eventTypes, pricingRules, getAddOnsForEventType, addBooking, settings, getBookingsForDate } = useStore();
+  const { properties, pricingRules, getAddOnsForProperty, addBooking, settings, bookings, blockedDates } = useStore();
   const isFromCalendar = searchParams.get('from') === 'calendar';
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -38,12 +22,11 @@ const BookingWizard = () => {
   const [hasViewedPolicies, setHasViewedPolicies] = useState(false);
   const [agreedToPolicies, setAgreedToPolicies] = useState(false);
   const [formData, setFormData] = useState({
-    eventType: null,
-    date: format(new Date(), 'yyyy-MM-dd'),
-    startTime: '10:00',
-    endTime: '14:00',
+    property: null,
+    checkInDate: '',
+    checkOutDate: '',
+    guestCount: 1,
     selectedAddOns: [],
-    guestCount: 50,
     contactName: '',
     contactEmail: '',
     contactPhone: '',
@@ -52,139 +35,122 @@ const BookingWizard = () => {
   });
   const [estimatedPrice, setEstimatedPrice] = useState(0);
   const [availableAddOns, setAvailableAddOns] = useState([]);
-  const [timeConflict, setTimeConflict] = useState(null);
+  const [dateConflict, setDateConflict] = useState(null);
 
   // Handle URL parameters for deep linking
   useEffect(() => {
-    const eventTypeId = searchParams.get('eventType');
-    const dateParam = searchParams.get('date');
-    
-    // Pre-select event type if provided
-    if (eventTypeId) {
-      const selectedType = eventTypes.find(et => et.id === eventTypeId);
-      if (selectedType && selectedType.active) {
-        setFormData(prev => ({ ...prev, eventType: selectedType }));
-        setCurrentStep(1); // Skip to date/time step
+    const propertyId = searchParams.get('property');
+    const checkInParam = searchParams.get('checkInDate');
+    const checkOutParam = searchParams.get('checkOutDate');
+
+    // Pre-select property if provided
+    if (propertyId) {
+      const selectedProperty = properties.find(p => p.id === propertyId);
+      if (selectedProperty && selectedProperty.isActive) {
+        setFormData(prev => ({ ...prev, property: selectedProperty }));
+        setCurrentStep(1);
       }
     }
-    
-    // Pre-select date if provided
-    if (dateParam) {
-      try {
-        const parsedDate = new Date(dateParam);
-        if (!isNaN(parsedDate.getTime())) {
-          setFormData(prev => ({ ...prev, date: format(parsedDate, 'yyyy-MM-dd') }));
-          if (!eventTypeId) {
-            // If only date is provided, stay on event type selection
-            setCurrentStep(0);
-          }
-        }
-      } catch (e) {
-        console.error('Invalid date parameter');
+
+    // Pre-select check-in date if provided
+    if (checkInParam) {
+      setFormData(prev => ({ ...prev, checkInDate: checkInParam }));
+      if (!propertyId) {
+        setCurrentStep(0);
       }
     }
-  }, [searchParams, eventTypes]);
 
-  const unavailableTimes = useMemo(() => {
-    if (!formData.date) return [];
-    const bookings = getBookingsForDate(formData.date);
-    return bookings.map(b => {
-      const start = new Date(`${b.date}T${b.startTime}`);
-      const end = new Date(`${b.date}T${b.endTime}`);
-      return {
-        start,
-        end,
-        display: `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`
-      };
-    });
-  }, [formData.date, getBookingsForDate]);
+    // Pre-select check-out date if provided
+    if (checkOutParam) {
+      setFormData(prev => ({ ...prev, checkOutDate: checkOutParam }));
+    }
+  }, [searchParams, properties]);
 
+  // Load add-ons when property changes
   useEffect(() => {
-    if (formData.eventType) {
-      const addons = getAddOnsForEventType(formData.eventType.id);
+    if (formData.property) {
+      const addons = getAddOnsForProperty(formData.property.id);
       setAvailableAddOns(addons);
       setFormData(prev => ({
         ...prev,
-        selectedAddOns: prev.selectedAddOns.filter(id => 
+        selectedAddOns: prev.selectedAddOns.filter(id =>
           addons.some(addon => addon.id === id)
         )
       }));
     }
-  }, [formData.eventType, getAddOnsForEventType]);
+  }, [formData.property, getAddOnsForProperty]);
 
+  // Calculate price for STR booking
   useEffect(() => {
-    if (!formData.eventType || !formData.date || !formData.startTime || !formData.endTime) return;
-    const start = new Date(`${formData.date}T${formData.startTime}`);
-    const end = new Date(`${formData.date}T${formData.endTime}`);
-    if (end <= start) return;
+    if (!formData.property || !formData.checkInDate || !formData.checkOutDate) return;
 
-    let total = calculatePrice(formData.eventType, start, end, pricingRules);
-    formData.selectedAddOns.forEach(id => {
-      const addon = availableAddOns.find(a => a.id === id);
-      if (addon) {
-        if (addon.type === 'flat') total += addon.price;
-        if (addon.type === 'hourly') {
-          const hours = (end - start) / (1000 * 60 * 60);
-          total += addon.price * hours;
-        }
-      }
-    });
+    const total = calculatePrice(
+      formData.property,
+      formData.checkInDate,
+      formData.checkOutDate,
+      pricingRules,
+      formData.selectedAddOns,
+      availableAddOns
+    );
+
     setEstimatedPrice(total);
-  }, [formData, pricingRules, availableAddOns]);
+  }, [formData.property, formData.checkInDate, formData.checkOutDate, formData.selectedAddOns, pricingRules, availableAddOns]);
 
+  // Date range conflict detection with same-day turnover logic
   useEffect(() => {
-    if (!formData.eventType || !formData.date || !formData.startTime || !formData.endTime) {
-      setTimeConflict(null);
+    if (!formData.property || !formData.checkInDate || !formData.checkOutDate) {
+      setDateConflict(null);
       return;
     }
 
-    const existingBookings = getBookingsForDate(formData.date);
-    const requestedStart = new Date(`${formData.date}T${formData.startTime}`);
-    const requestedEnd = new Date(`${formData.date}T${formData.endTime}`);
-    const cooldownHours = formData.eventType.cooldownHours ?? 1;
+    // Check for booking conflicts
+    const confirmedBookings = bookings.filter(b =>
+      b.status === 'confirmed' || b.status === 'pending'
+    );
 
-    for (const booking of existingBookings) {
-      const bookingStart = new Date(`${booking.date}T${booking.startTime}`);
-      const bookingEnd = new Date(`${booking.date}T${booking.endTime}`);
-      const bookingEndWithCooldown = new Date(bookingEnd.getTime() + cooldownHours * 60 * 60 * 1000);
-
-      const hasConflict = 
-        (requestedStart >= bookingStart && requestedStart < bookingEndWithCooldown) ||
-        (requestedEnd > bookingStart && requestedEnd <= bookingEndWithCooldown) ||
-        (requestedStart <= bookingStart && requestedEnd >= bookingEndWithCooldown) ||
-        (requestedStart < bookingStart && requestedEnd > bookingEndWithCooldown);
-
-      if (hasConflict) {
-        setTimeConflict({
-          bookingEnd: format(bookingEnd, 'h:mm a'),
-          cooldownHours,
-          earliestStart: format(bookingEndWithCooldown, 'h:mm a'),
-          eventName: booking.eventType?.name || 'Another event'
+    for (const booking of confirmedBookings) {
+      // Same-day turnover: checkout date can equal another booking's check-in date
+      // Conflict only if ranges truly overlap
+      if (formData.checkInDate < booking.checkOutDate && formData.checkOutDate > booking.checkInDate) {
+        setDateConflict({
+          type: 'booking',
+          message: `These dates overlap with an existing booking (${format(parseISO(booking.checkInDate), 'MMM d')} - ${format(parseISO(booking.checkOutDate), 'MMM d')})`
         });
         return;
       }
     }
-    setTimeConflict(null);
-  }, [formData.date, formData.startTime, formData.endTime, formData.eventType, getBookingsForDate]);
 
-  const isDateTimeValid = () => {
-    if (!formData.date || !formData.startTime || !formData.endTime) return false;
-    const start = new Date(`${formData.date}T${formData.startTime}`);
-    const end = new Date(`${formData.date}T${formData.endTime}`);
-    if (end <= start) return false;
-    if (timeConflict) return false;
-    if (formData.eventType) {
-      const durationHours = (end - start) / (1000 * 60 * 60);
-      if (durationHours < formData.eventType.minDuration) return false;
+    // Check for blocked dates
+    const relevantBlockedDates = blockedDates.filter(bd => {
+      if (bd.propertyId && bd.propertyId !== formData.property.id) return false;
+      return bd.date >= formData.checkInDate && bd.date < formData.checkOutDate;
+    });
+
+    if (relevantBlockedDates.length > 0) {
+      setDateConflict({
+        type: 'blocked',
+        message: `One or more dates in this range are blocked: ${relevantBlockedDates.map(bd => format(parseISO(bd.date), 'MMM d')).join(', ')}`
+      });
+      return;
+    }
+
+    setDateConflict(null);
+  }, [formData.checkInDate, formData.checkOutDate, formData.property, bookings, blockedDates]);
+
+  const isDateRangeValid = () => {
+    if (!formData.checkInDate || !formData.checkOutDate) return false;
+    if (formData.checkOutDate <= formData.checkInDate) return false;
+    if (dateConflict) return false;
+    if (formData.property) {
+      const nights = getNights();
+      if (nights < formData.property.minNights) return false;
     }
     return true;
   };
 
-  const getDurationHours = () => {
-    if (!formData.startTime || !formData.endTime) return 0;
-    const start = new Date(`${formData.date}T${formData.startTime}`);
-    const end = new Date(`${formData.date}T${formData.endTime}`);
-    return (end - start) / (1000 * 60 * 60);
+  const getNights = () => {
+    if (!formData.checkInDate || !formData.checkOutDate) return 0;
+    return differenceInDays(parseISO(formData.checkOutDate), parseISO(formData.checkInDate));
   };
 
   const handleNext = () => {
@@ -293,7 +259,7 @@ const BookingWizard = () => {
 
   if (completed) {
     const homeUrl = isFromCalendar ? '/calendar' : '/';
-    const confirmation = formData.eventType?.confirmationPage || {
+    const confirmation = formData.property?.confirmationPage || {
       title: 'Request Received!',
       message: "<p>We've received your booking request. An admin will review it shortly. You'll receive an email update soon.</p>",
       buttons: [{ label: 'Back to Home', url: homeUrl, style: 'primary' }]
@@ -365,154 +331,149 @@ const BookingWizard = () => {
           transition={{ duration: 0.2 }}
         >
           {currentStep === 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">What kind of event is it?</h2>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold mb-2 text-gray-900">Choose your property</h2>
+                <p className="text-sm text-gray-600">Select a property and enter the number of guests</p>
+              </div>
+
               <div className="grid gap-4">
-                {eventTypes.filter(et => et.active).map(type => (
+                {properties.filter(p => p.isActive).map(property => (
                   <button
-                    key={type.id}
+                    key={property.id}
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, eventType: type }));
-                      handleNext();
+                      setFormData(prev => ({ ...prev, property }));
                     }}
                     className={cn(
                       "flex items-center p-4 rounded-xl border-2 text-left transition-all hover:shadow-md w-full",
-                      formData.eventType?.id === type.id 
-                        ? "border-primary bg-blue-50" 
+                      formData.property?.id === property.id
+                        ? "border-primary bg-blue-50"
                         : "border-gray-200 bg-white hover:border-blue-300"
                     )}
                   >
                     <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 text-lg">{type.name}</h3>
-                      <p className="text-sm text-gray-600 font-medium">{type.description}</p>
+                      <h3 className="font-bold text-gray-900 text-lg">{property.name}</h3>
+                      <p className="text-sm text-gray-600 font-medium">{property.description}</p>
+                      <p className="text-xs text-gray-500 font-medium mt-1">Max {property.maxGuests} guests</p>
                     </div>
                     <div className="text-right pl-4">
                       <span className="text-xs text-gray-500 font-medium whitespace-nowrap block">Starting at</span>
                       <span className="block font-bold text-primary text-lg">
-                        {formatCurrency(type.baseRate)}/hr
+                        {formatCurrency(property.baseNightlyRate)}/night
                       </span>
-                      <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Min {type.minDuration} hrs</span>
+                      <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Min {property.minNights} night{property.minNights > 1 ? 's' : ''}</span>
                     </div>
                   </button>
                 ))}
               </div>
+
+              {formData.property && (
+                <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
+                  <label className="block text-sm font-bold text-gray-700 mb-3">
+                    Number of Guests <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={formData.property.maxGuests}
+                    placeholder="1"
+                    className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    value={formData.guestCount}
+                    onChange={e => {
+                      const value = parseInt(e.target.value) || 0;
+                      setFormData(p => ({ ...p, guestCount: value }));
+                    }}
+                  />
+                  {formData.guestCount > formData.property.maxGuests && (
+                    <p className="text-sm text-red-600 font-medium mt-2">
+                      This property accommodates up to {formData.property.maxGuests} guests.
+                    </p>
+                  )}
+                  {formData.guestCount >= 1 && formData.guestCount <= formData.property.maxGuests && (
+                    <p className="text-sm text-green-600 font-medium mt-2 flex items-center gap-1">
+                      <SafeIcon icon={FiIcons.FiCheck} className="text-green-600" />
+                      Valid guest count
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
           {currentStep === 1 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Select date & time</h2>
-              
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <label className="text-lg font-bold text-gray-900">Date</label>
-                  <div className="text-sm text-gray-500 font-medium">
-                    {format(new Date(formData.date), 'MMMM yyyy')}
-                  </div>
-                </div>
-                <input 
-                  type="date" 
-                  className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-gray-50 text-gray-900 font-bold text-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                  min={format(new Date(), 'yyyy-MM-dd')}
-                  value={formData.date}
-                  onChange={(e) => setFormData(p => ({ ...p, date: e.target.value }))}
-                />
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Select your dates</h2>
 
-                {unavailableTimes.length > 0 && (
-                  <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-400 font-medium mb-2">Space is unavailable:</p>
-                    <div className="space-y-1">
-                      {unavailableTimes.map((time, idx) => (
-                        <p key={idx} className="text-sm font-medium text-gray-500">
-                          {time.display}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1">
-                  <label className="block text-center text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Start</label>
-                  <div className="relative">
-                    <select
-                      value={formData.startTime}
-                      onChange={(e) => setFormData(p => ({ ...p, startTime: e.target.value }))}
-                      className="w-full p-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 rounded-xl text-center font-bold text-xl text-gray-900 focus:ring-2 focus:ring-primary focus:bg-white outline-none appearance-none cursor-pointer transition-all"
-                    >
-                      {TIME_SLOTS.map(slot => (
-                        <option key={`start-${slot.value}`} value={slot.value}>
-                          {slot.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                  <label className="block text-sm font-bold text-gray-700 mb-3">
+                    Check-in Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-gray-50 text-gray-900 font-bold text-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                    min={format(new Date(), 'yyyy-MM-dd')}
+                    value={formData.checkInDate}
+                    onChange={(e) => setFormData(p => ({ ...p, checkInDate: e.target.value }))}
+                  />
                 </div>
 
-                <div className="text-gray-400 font-medium pt-6">to</div>
-
-                <div className="flex-1">
-                  <label className="block text-center text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">End</label>
-                  <div className="relative">
-                    <select
-                      value={formData.endTime}
-                      onChange={(e) => setFormData(p => ({ ...p, endTime: e.target.value }))}
-                      className="w-full p-4 bg-gray-50 border-2 border-transparent hover:border-gray-200 rounded-xl text-center font-bold text-xl text-gray-900 focus:ring-2 focus:ring-primary focus:bg-white outline-none appearance-none cursor-pointer transition-all"
-                    >
-                      {TIME_SLOTS.map(slot => (
-                        <option key={`end-${slot.value}`} value={slot.value}>
-                          {slot.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                  <label className="block text-sm font-bold text-gray-700 mb-3">
+                    Check-out Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none bg-gray-50 text-gray-900 font-bold text-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                    min={formData.checkInDate || format(new Date(), 'yyyy-MM-dd')}
+                    value={formData.checkOutDate}
+                    onChange={(e) => setFormData(p => ({ ...p, checkOutDate: e.target.value }))}
+                  />
                 </div>
               </div>
 
               <div className="space-y-3">
-                {timeConflict && (
+                {dateConflict && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
                     <SafeIcon icon={FiIcons.FiAlertCircle} className="text-red-600 text-xl flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <p className="text-sm font-bold text-red-900">Time Conflict</p>
+                      <p className="text-sm font-bold text-red-900">Date Conflict</p>
                       <p className="text-xs text-red-700 mt-1 leading-relaxed">
-                        {timeConflict.eventName} ends at {timeConflict.bookingEnd}.<br/>
-                        With the {timeConflict.cooldownHours}-hour cooldown, earliest start is <strong>{timeConflict.earliestStart}</strong>.
+                        {dateConflict.message}
                       </p>
                     </div>
                   </div>
                 )}
-                
-                {!timeConflict && isDateTimeValid() ? (
+
+                {!dateConflict && isDateRangeValid() ? (
                   <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
                     <SafeIcon icon={FiIcons.FiCheck} className="text-green-600 text-xl flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <p className="text-sm font-bold text-green-900">
-                        {getDurationHours().toFixed(1)} hours
+                        {getNights()} night{getNights() !== 1 ? 's' : ''}
                       </p>
                       <p className="text-xs text-green-700 mt-1">
-                        Valid duration for {formData.eventType?.name}
+                        Available from {format(parseISO(formData.checkInDate), 'MMM d, yyyy')} to {format(parseISO(formData.checkOutDate), 'MMM d, yyyy')}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <>
-                    {getDurationHours() <= 0 && !timeConflict && (
+                    {formData.checkInDate && formData.checkOutDate && formData.checkOutDate <= formData.checkInDate && !dateConflict && (
                       <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700">
                         <SafeIcon icon={FiIcons.FiAlertCircle} className="text-xl flex-shrink-0" />
-                        <span className="text-sm font-medium">End time must be after start time</span>
+                        <span className="text-sm font-medium">Check-out date must be after check-in date</span>
                       </div>
                     )}
-                    {getDurationHours() > 0 && getDurationHours() < formData.eventType?.minDuration && !timeConflict && (
+                    {formData.checkInDate && formData.checkOutDate && getNights() > 0 && getNights() < formData.property?.minNights && !dateConflict && (
                       <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
                         <SafeIcon icon={FiIcons.FiAlertTriangle} className="text-amber-600 text-xl flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <p className="text-sm font-bold text-amber-900">
-                            Duration too short
+                            Stay too short
                           </p>
                           <p className="text-xs text-amber-700 mt-1">
-                            Minimum {formData.eventType?.minDuration} hours required.
+                            Minimum {formData.property?.minNights} night{formData.property?.minNights > 1 ? 's' : ''} required for this property.
                           </p>
                         </div>
                       </div>
@@ -521,18 +482,14 @@ const BookingWizard = () => {
                 )}
               </div>
 
-              <div className="flex items-center justify-center gap-2">
-                <p className="text-xs text-gray-500 text-center">
-                  * Ensure the times you select include the time required for set up and tear down
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowPolicies(true)}
-                  className="text-primary hover:text-blue-700 transition-colors"
-                  title="View rental policies for details"
-                >
-                  <SafeIcon icon={FiIcons.FiInfo} className="text-base" />
-                </button>
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <SafeIcon icon={FiIcons.FiInfo} className="text-primary flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-gray-700">Standard check-in: {settings?.standardCheckInTime || '3:00 PM'}</p>
+                    <p className="font-medium text-gray-700">Standard check-out: {settings?.standardCheckOutTime || '11:00 AM'}</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -540,29 +497,32 @@ const BookingWizard = () => {
           {currentStep === 2 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Enhance your event</h2>
+                <h2 className="text-xl font-bold text-gray-900">Enhance your stay</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Add-ons available for <span className="font-bold text-gray-900">{formData.eventType?.name}</span>
+                  Add-ons available for <span className="font-bold text-gray-900">{formData.property?.name}</span>
                 </p>
               </div>
-              
+
               {availableAddOns.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
                   <SafeIcon icon={FiIcons.FiPackage} className="mx-auto text-4xl text-gray-300 mb-2" />
-                  <p className="text-gray-500 font-medium">No add-ons available for this event type.</p>
+                  <p className="text-gray-500 font-medium">No add-ons available for this property.</p>
                   <p className="text-xs text-gray-400 mt-1">You can skip this step and continue.</p>
                 </div>
               ) : (
                 <div className="grid gap-3">
                   {availableAddOns.map(addon => {
                     const isSelected = formData.selectedAddOns.includes(addon.id);
+                    const nights = getNights();
+                    const addonTotal = addon.type === 'per_night' ? addon.price * nights : addon.price;
+
                     return (
-                      <div 
+                      <div
                         key={addon.id}
                         onClick={() => {
                           setFormData(prev => ({
                             ...prev,
-                            selectedAddOns: isSelected 
+                            selectedAddOns: isSelected
                               ? prev.selectedAddOns.filter(id => id !== addon.id)
                               : [...prev.selectedAddOns, addon.id]
                           }));
@@ -585,8 +545,19 @@ const BookingWizard = () => {
                           </div>
                         </div>
                         <div className="text-right pl-2">
-                          <span className="font-bold block text-gray-900">{formatCurrency(addon.price)}</span>
-                          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{addon.type === 'hourly' ? '/hr' : 'flat'}</span>
+                          {addon.type === 'flat' ? (
+                            <>
+                              <span className="font-bold block text-gray-900">{formatCurrency(addon.price)}</span>
+                              <span className="text-xs text-gray-500 font-medium whitespace-nowrap">one-time fee</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-bold block text-gray-900">{formatCurrency(addonTotal)}</span>
+                              <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
+                                {formatCurrency(addon.price)} × {nights} night{nights !== 1 ? 's' : ''}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
@@ -744,36 +715,70 @@ const BookingWizard = () => {
 
               <div className="bg-gray-50 p-6 rounded-xl space-y-3 border border-gray-200">
                 <h3 className="font-bold text-gray-900 border-b border-gray-200 pb-2">Booking Summary</h3>
+
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 font-medium">Event Type</span>
-                  <span className="font-bold text-gray-900">{formData.eventType?.name}</span>
+                  <span className="text-gray-600 font-medium">Property</span>
+                  <span className="font-bold text-gray-900">{formData.property?.name}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 font-medium">Date</span>
-                  <span className="font-bold text-gray-900">{format(new Date(formData.date), 'MMMM do, yyyy')}</span>
+                  <span className="text-gray-600 font-medium">Check-in</span>
+                  <span className="font-bold text-gray-900">{formData.checkInDate ? format(parseISO(formData.checkInDate), 'MMMM d, yyyy') : '-'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 font-medium">Time</span>
-                  <span className="font-bold text-gray-900">
-                    {TIME_SLOTS.find(t => t.value === formData.startTime)?.label} - {TIME_SLOTS.find(t => t.value === formData.endTime)?.label}
-                  </span>
+                  <span className="text-gray-600 font-medium">Check-out</span>
+                  <span className="font-bold text-gray-900">{formData.checkOutDate ? format(parseISO(formData.checkOutDate), 'MMMM d, yyyy') : '-'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 font-medium">Duration</span>
-                  <span className="font-bold text-gray-900">{getDurationHours().toFixed(1)} hours</span>
+                  <span className="text-gray-600 font-medium">Nights</span>
+                  <span className="font-bold text-gray-900">{getNights()} night{getNights() !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 font-medium">Number of Guests</span>
+                  <span className="text-gray-600 font-medium">Guests</span>
                   <span className="font-bold text-gray-900">{formData.guestCount}</span>
                 </div>
-                {formData.selectedAddOns.length > 0 && (
+
+                <div className="border-t border-gray-200 pt-3 space-y-2">
+                  <h4 className="font-bold text-sm text-gray-700 mb-2">Price Breakdown</h4>
+
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 font-medium">Add-ons</span>
-                    <span className="font-bold text-gray-900">{formData.selectedAddOns.length} selected</span>
+                    <span className="text-gray-600">
+                      Base Rate ({getNights()} × {formatCurrency(formData.property?.baseNightlyRate)}/night)
+                    </span>
+                    <span className="font-bold text-gray-900">
+                      {formatCurrency((formData.property?.baseNightlyRate || 0) * getNights())}
+                    </span>
                   </div>
-                )}
+
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Cleaning Fee</span>
+                    <span className="font-bold text-gray-900">
+                      {formatCurrency(formData.property?.cleaningFee || 0)}
+                    </span>
+                  </div>
+
+                  {formData.selectedAddOns.length > 0 && (
+                    <div className="border-t border-gray-200 pt-2 space-y-1.5">
+                      <h5 className="font-bold text-xs text-gray-600 uppercase tracking-wide">Add-ons</h5>
+                      {formData.selectedAddOns.map(addonId => {
+                        const addon = availableAddOns.find(a => a.id === addonId);
+                        if (!addon) return null;
+                        const nights = getNights();
+                        const addonTotal = addon.type === 'per_night' ? addon.price * nights : addon.price;
+                        return (
+                          <div key={addon.id} className="flex justify-between text-sm">
+                            <span className="text-gray-600">
+                              {addon.name} {addon.type === 'per_night' ? `(${nights} × ${formatCurrency(addon.price)})` : '(one-time)'}
+                            </span>
+                            <span className="font-bold text-gray-900">{formatCurrency(addonTotal)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
-                  <span className="font-bold text-lg text-gray-900">Estimated Total</span>
+                  <span className="font-bold text-lg text-gray-900">Total</span>
                   <span className="font-bold text-2xl text-primary">{formatCurrency(estimatedPrice)}</span>
                 </div>
                 <p className="text-xs text-gray-500 font-medium text-center mt-2">
@@ -798,15 +803,15 @@ const BookingWizard = () => {
             </Button>
           )}
           {currentStep < steps.length - 1 ? (
-            <Button 
-              className="flex-1 font-bold shadow-lg text-white" 
+            <Button
+              className="flex-1 font-bold shadow-lg text-white"
               onClick={handleNext}
               disabled={
-                (currentStep === 0 && !formData.eventType) ||
-                (currentStep === 1 && !isDateTimeValid())
+                (currentStep === 0 && (!formData.property || formData.guestCount < 1 || formData.guestCount > (formData.property?.maxGuests || 0))) ||
+                (currentStep === 1 && !isDateRangeValid())
               }
             >
-              {currentStep === 1 ? 'Select Time' : 'Next Step'}
+              Next Step
               <SafeIcon icon={FiIcons.FiChevronRight} className="ml-1" />
             </Button>
           ) : (

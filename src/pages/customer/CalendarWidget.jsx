@@ -8,7 +8,7 @@ import { cn } from '../../lib/utils';
 
 const CalendarWidget = () => {
   const navigate = useNavigate();
-  const { getBookingsForDate } = useStore();
+  const { bookings } = useStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const monthStart = startOfMonth(currentMonth);
@@ -22,27 +22,29 @@ const CalendarWidget = () => {
   const handleNextMonth = () => setCurrentMonth(prev => addMonths(prev, 1));
 
   const getDateStatus = (date) => {
-    const bookings = getBookingsForDate(format(date, 'yyyy-MM-dd'));
-    if (bookings.length === 0) return 'available';
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const confirmedBookings = bookings.filter(b =>
+      b.status === 'confirmed' || b.status === 'pending'
+    );
 
-    const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
-    if (confirmedBookings.length === 0) return 'available';
+    // Check if date is an occupied night (between check-in inclusive and check-out exclusive)
+    const isOccupied = confirmedBookings.some(b =>
+      dateStr >= b.checkInDate && dateStr < b.checkOutDate
+    );
 
-    const totalBookedHours = confirmedBookings.reduce((sum, b) => {
-      const start = new Date(`${b.date}T${b.startTime}`);
-      const end = new Date(`${b.date}T${b.endTime}`);
-      return sum + (end - start) / (1000 * 60 * 60);
-    }, 0);
+    // Check if date is a checkout date (available for new check-ins - same-day turnover)
+    const isCheckoutDate = confirmedBookings.some(b => dateStr === b.checkOutDate);
 
-    if (totalBookedHours >= 12) return 'full';
-    return 'partial';
+    if (isOccupied) return 'occupied';
+    if (isCheckoutDate) return 'checkout';
+    return 'available';
   };
 
   const handleDateClick = (date) => {
     if (isPast(date) && !isToday(date)) return;
     const status = getDateStatus(date);
-    if (status === 'full') return;
-    navigate(`/booking?date=${format(date, 'yyyy-MM-dd')}&from=calendar`);
+    if (status === 'occupied') return;
+    navigate(`/booking?checkInDate=${format(date, 'yyyy-MM-dd')}&from=calendar`);
   };
 
   return (
@@ -81,29 +83,28 @@ const CalendarWidget = () => {
                 const isCurrentMonth = isSameMonth(day, currentMonth);
                 const isDisabled = isPast(day) && !isToday(day);
                 const status = !isDisabled && isCurrentMonth ? getDateStatus(day) : null;
-                const dateBookings = getBookingsForDate(format(day, 'yyyy-MM-dd'));
-                const isFull = status === 'full';
+                const isOccupied = status === 'occupied';
 
                 return (
                   <button
                     key={idx}
                     onClick={() => handleDateClick(day)}
-                    disabled={isDisabled || isFull}
+                    disabled={isDisabled || isOccupied}
                     className={cn(
                       "aspect-square rounded-lg text-base font-semibold transition-all relative",
                       "flex flex-col items-center justify-center",
                       !isCurrentMonth && "text-gray-300",
-                      isCurrentMonth && !isDisabled && !isFull && "text-gray-900",
+                      isCurrentMonth && !isDisabled && !isOccupied && "text-gray-900",
                       isToday(day) && "ring-2 ring-blue-500 ring-offset-1",
                       isDisabled && "text-gray-300 cursor-not-allowed",
-                      isFull && "bg-red-50 border border-red-200 text-red-400 cursor-not-allowed",
-                      !isDisabled && !isFull && status === 'available' && isCurrentMonth && "bg-green-50 border border-green-200 hover:bg-green-100 cursor-pointer",
-                      !isDisabled && !isFull && status === 'partial' && isCurrentMonth && "bg-amber-50 border border-amber-200 hover:bg-amber-100 cursor-pointer"
+                      isOccupied && "bg-red-50 border border-red-200 text-red-400 cursor-not-allowed",
+                      !isDisabled && !isOccupied && status === 'available' && isCurrentMonth && "bg-green-50 border border-green-200 hover:bg-green-100 cursor-pointer",
+                      !isDisabled && !isOccupied && status === 'checkout' && isCurrentMonth && "bg-blue-50 border border-blue-200 hover:bg-blue-100 cursor-pointer"
                     )}
                   >
                     <span>{format(day, 'd')}</span>
-                    {!isDisabled && status === 'partial' && dateBookings.length > 0 && (
-                      <div className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    {!isDisabled && status === 'checkout' && (
+                      <div className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-blue-500" />
                     )}
                   </button>
                 );
@@ -118,14 +119,14 @@ const CalendarWidget = () => {
                 <span className="text-gray-500">Available</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="relative w-3 h-3 rounded bg-amber-50 border border-amber-200">
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-amber-500" />
+                <div className="relative w-3 h-3 rounded bg-blue-50 border border-blue-200">
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-blue-500" />
                 </div>
-                <span className="text-gray-500">Some Availability</span>
+                <span className="text-gray-500">Checkout (Available)</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded bg-red-50 border border-red-200" />
-                <span className="text-gray-500">No Availability</span>
+                <span className="text-gray-500">Occupied</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded bg-gray-100" />

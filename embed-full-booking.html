@@ -84,8 +84,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>🎫 Event Booking System - Embed Codes</h1>
-    
+    <h1>🏠 Property Booking System - Embed Codes</h1>
+
     <div class="tabs">
       <div class="tab active" onclick="switchTab('booking')">Customer Booking Widget</div>
       <div class="tab" onclick="switchTab('calendar')">Admin Calendar Widget</div>
@@ -95,11 +95,11 @@
     <div id="booking-content" class="content active">
       <div class="embed-info">
         <h2>Customer Booking Widget</h2>
-        <p>This widget allows customers to browse event types and submit booking requests. Perfect for public-facing pages.</p>
+        <p>This widget allows customers to browse properties and submit booking requests. Perfect for public-facing pages.</p>
         
         <div class="code-block">
-&lt;!-- Event Booking Widget --&gt;<br>
-&lt;div id="event-booking-widget"&gt;&lt;/div&gt;<br>
+&lt;!-- Property Booking Widget --&gt;<br>
+&lt;div id="property-booking-widget"&gt;&lt;/div&gt;<br>
 &lt;script&gt;<br>
 &nbsp;&nbsp;(function() {<br>
 &nbsp;&nbsp;&nbsp;&nbsp;const iframe = document.createElement('iframe');<br>
@@ -109,7 +109,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.border = 'none';<br>
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.borderRadius = '8px';<br>
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.overflow = 'hidden';<br>
-&nbsp;&nbsp;&nbsp;&nbsp;document.getElementById('event-booking-widget').appendChild(iframe);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;document.getElementById('property-booking-widget').appendChild(iframe);<br>
 &nbsp;&nbsp;})();<br>
 &lt;/script&gt;
         </div>
@@ -120,7 +120,7 @@
       </div>
 
       <div class="widget-container">
-        <div id="event-booking-widget"></div>
+        <div id="property-booking-widget-demo"></div>
         <script>
           (function() {
             const iframe = document.createElement('iframe');
@@ -130,7 +130,7 @@
             iframe.style.border = 'none';
             iframe.style.borderRadius = '8px';
             iframe.style.overflow = 'hidden';
-            document.getElementById('event-booking-widget').appendChild(iframe);
+            document.getElementById('property-booking-widget-demo').appendChild(iframe);
           })();
         </script>
       </div>
@@ -140,11 +140,11 @@
     <div id="calendar-content" class="content">
       <div class="embed-info">
         <h2>Admin Calendar Widget</h2>
-        <p>This widget displays the full event calendar with booking management capabilities. Ideal for admin dashboards and internal tools.</p>
-        
+        <p>This widget displays the full rental calendar with booking management capabilities. Ideal for admin dashboards and internal tools.</p>
+
         <div class="code-block">
-&lt;!-- Event Calendar Widget --&gt;<br>
-&lt;div id="event-calendar-widget"&gt;&lt;/div&gt;<br>
+&lt;!-- Rental Calendar Widget --&gt;<br>
+&lt;div id="rental-calendar-widget"&gt;&lt;/div&gt;<br>
 &lt;script&gt;<br>
 &nbsp;&nbsp;(function() {<br>
 &nbsp;&nbsp;&nbsp;&nbsp;const iframe = document.createElement('iframe');<br>
@@ -154,16 +154,16 @@
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.border = 'none';<br>
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.borderRadius = '8px';<br>
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.overflow = 'hidden';<br>
-&nbsp;&nbsp;&nbsp;&nbsp;document.getElementById('event-calendar-widget').appendChild(iframe);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;document.getElementById('rental-calendar-widget').appendChild(iframe);<br>
 &nbsp;&nbsp;})();<br>
 &lt;/script&gt;
         </div>
 
         <h2 style="margin-top: 30px;">Features</h2>
         <p>✅ View all bookings in a monthly calendar view</p>
-        <p>✅ Click events to view details, approve, decline, or edit</p>
-        <p>✅ Block dates or time slots directly from the calendar</p>
-        <p>✅ Color-coded status indicators (pending, confirmed, declined)</p>
+        <p>✅ Click dates to view details, approve, decline, or edit bookings</p>
+        <p>✅ Block dates directly from the calendar</p>
+        <p>✅ Color-coded status indicators (pending, confirmed, cancelled)</p>
       </div>
 
       <div class="widget-container">
