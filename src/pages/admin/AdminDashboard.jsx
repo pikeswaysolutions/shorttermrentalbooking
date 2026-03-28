@@ -41,11 +41,11 @@ const AdminDashboard = () => {
           icon={FiIcons.FiInbox} 
           color="bg-yellow-500" 
         />
-        <StatCard 
-          title="Upcoming Events" 
-          value={confirmedCount} 
-          icon={FiIcons.FiCalendar} 
-          color="bg-blue-500" 
+        <StatCard
+          title="Confirmed Stays"
+          value={confirmedCount}
+          icon={FiIcons.FiCalendar}
+          color="bg-blue-500"
         />
         <StatCard 
           title="Projected Revenue" 
@@ -69,9 +69,9 @@ const AdminDashboard = () => {
                   booking.status === 'confirmed' ? 'bg-green-500' : 'bg-red-500'
                 }`} />
                 <div>
-                  <h4 className="font-medium text-gray-900">{booking.eventType?.name}</h4>
+                  <h4 className="font-medium text-gray-900">{booking.property?.name}</h4>
                   <p className="text-sm text-gray-500">
-                    {format(new Date(booking.date), 'MMM d')} • {booking.contactName}
+                    {format(new Date(booking.check_in_date || booking.date), 'MMM d')} • {booking.contactName || booking.contact_name}
                   </p>
                 </div>
               </div>

@@ -6,7 +6,7 @@ import SafeIcon from '../../common/SafeIcon';
 import { cn, formatCurrency } from '../../lib/utils';
 
 const AddOnsManager = () => {
-  const { addOns, addAddOn, updateAddOn, deleteAddOn, eventTypes } = useStore();
+  const { addOns, addAddOn, updateAddOn, deleteAddOn, properties } = useStore();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -16,14 +16,14 @@ const AddOnsManager = () => {
     price: 50,
     type: 'flat',
     active: true,
-    eventTypeIds: []
+    property_ids: []
   });
 
   const handleEdit = (addon) => {
     setEditingId(addon.id);
     setFormData({
       ...addon,
-      eventTypeIds: addon.eventTypeIds || []
+      property_ids: addon.property_ids || []
     });
     setIsAdding(true);
   };
@@ -43,7 +43,7 @@ const AddOnsManager = () => {
       }
       setIsAdding(false);
       setEditingId(null);
-      setFormData({ name: '', description: '', price: 50, type: 'flat', active: true, eventTypeIds: [] });
+      setFormData({ name: '', description: '', price: 50, type: 'flat', active: true, property_ids: [] });
     } catch (err) {
       alert(err.message || 'Failed to save add-on.');
     } finally {
@@ -64,22 +64,22 @@ const AddOnsManager = () => {
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: '', description: '', price: 50, type: 'flat', active: true, eventTypeIds: [] });
+    setFormData({ name: '', description: '', price: 50, type: 'flat', active: true, property_ids: [] });
   };
 
-  const toggleEventType = (eventTypeId) => {
+  const togglePropertyId = (propertyId) => {
     setFormData(prev => ({
       ...prev,
-      eventTypeIds: prev.eventTypeIds.includes(eventTypeId)
-        ? prev.eventTypeIds.filter(id => id !== eventTypeId)
-        : [...prev.eventTypeIds, eventTypeId]
+      property_ids: prev.property_ids.includes(propertyId)
+        ? prev.property_ids.filter(id => id !== propertyId)
+        : [...prev.property_ids, propertyId]
     }));
   };
 
-  const getEventTypeNames = (eventTypeIds) => {
-    if (!eventTypeIds || eventTypeIds.length === 0) return 'All Event Types';
-    return eventTypeIds
-      .map(id => eventTypes.find(et => et.id === id)?.name)
+  const getPropertyNames = (propertyIds) => {
+    if (!propertyIds || propertyIds.length === 0) return 'All Properties';
+    return propertyIds
+      .map(id => properties.find(p => p.id === id)?.name)
       .filter(Boolean)
       .join(', ');
   };
@@ -140,32 +140,32 @@ const AddOnsManager = () => {
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 >
                   <option value="flat">Flat Rate</option>
-                  <option value="hourly">Per Hour</option>
+                  <option value="per_night">Per Night</option>
                 </select>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
-                Available for Event Types
+                Available for Properties
                 <span className="ml-2 text-xs font-normal text-gray-500">(Leave all unchecked for all types)</span>
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {eventTypes.filter(et => et.active).map(eventType => (
+                {properties.filter(p => p.is_active).map(property => (
                   <button
-                    key={eventType.id}
+                    key={property.id}
                     type="button"
-                    onClick={() => toggleEventType(eventType.id)}
+                    onClick={() => togglePropertyId(property.id)}
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-colors",
-                      formData.eventTypeIds.includes(eventType.id)
+                      formData.property_ids.includes(property.id)
                         ? "border-primary bg-blue-50"
                         : "border-gray-200 bg-white hover:border-gray-300"
                     )}
                   >
                     <div className={cn(
                       "w-5 h-5 rounded border flex items-center justify-center flex-shrink-0",
-                      formData.eventTypeIds.includes(eventType.id)
+                      formData.property_ids.includes(property.id)
                         ? "bg-primary border-primary"
                         : "border-gray-400 bg-white"
                     )}>
@@ -174,16 +174,16 @@ const AddOnsManager = () => {
                       )}
                     </div>
                     <div>
-                      <p className="font-bold text-sm text-gray-900">{eventType.name}</p>
-                      <p className="text-xs text-gray-500">Starting at {formatCurrency(eventType.baseRate)}/hr</p>
+                      <p className="font-bold text-sm text-gray-900">{property.name}</p>
+                      <p className="text-xs text-gray-500">Starting at {formatCurrency(property.base_nightly_rate)}/night</p>
                     </div>
                   </button>
                 ))}
               </div>
-              {formData.eventTypeIds.length === 0 && (
+              {formData.property_ids.length === 0 && (
                 <p className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100">
                   <SafeIcon icon={FiIcons.FiInfo} className="inline mr-1" />
-                  This add-on will be available for all event types
+                  This add-on will be available for all properties
                 </p>
               )}
             </div>
@@ -227,12 +227,12 @@ const AddOnsManager = () => {
                 <p className="text-sm text-gray-600 mb-3">{addon.description}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
                   <span className="font-medium">Price: <span className="text-primary font-bold">{formatCurrency(addon.price)}</span></span>
-                  <span className="font-medium">Type: <span className="text-gray-900 font-bold">{addon.type === 'flat' ? 'Flat Rate' : 'Per Hour'}</span></span>
+                  <span className="font-medium">Type: <span className="text-gray-900 font-bold">{addon.type === 'flat' ? 'Flat Rate' : 'Per Night'}</span></span>
                 </div>
                 <div className="mt-2 flex items-start gap-2">
                   <SafeIcon icon={FiIcons.FiTag} className="text-gray-400 mt-0.5 flex-shrink-0" />
                   <span className="text-xs text-gray-600">
-                    <span className="font-semibold">Available for:</span> {getEventTypeNames(addon.eventTypeIds)}
+                    <span className="font-semibold">Available for:</span> {getPropertyNames(addon.property_ids)}
                   </span>
                 </div>
               </div>

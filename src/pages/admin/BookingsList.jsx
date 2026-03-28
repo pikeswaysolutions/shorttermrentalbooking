@@ -4,26 +4,10 @@ import { Button } from '../../components/ui/Button';
 import { formatCurrency, cn } from '../../lib/utils';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../../common/SafeIcon';
-import { format, set } from 'date-fns';
-
-const generateTimeSlots = () => {
-  const slots = [];
-  for (let i = 0; i < 24 * 2; i++) {
-    const minutes = i * 30;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    const timeString = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    const date = set(new Date(), { hours, minutes: mins, seconds: 0 });
-    const label = format(date, 'h:mm a');
-    slots.push({ value: timeString, label });
-  }
-  return slots;
-};
-
-const TIME_SLOTS = generateTimeSlots();
+import { format, differenceInDays, parseISO } from 'date-fns';
 
 const BookingsList = () => {
-  const { bookings, updateBookingStatus, updateBookingDetails, eventTypes } = useStore();
+  const { bookings, updateBookingStatus, updateBookingDetails, properties } = useStore();
   const [filter, setFilter] = useState('all');
   const [editingBooking, setEditingBooking] = useState(null);
   const [editFormData, setEditFormData] = useState({});
@@ -34,37 +18,42 @@ const BookingsList = () => {
   const sortedBookings = [...bookings].sort((a, b) => {
     if (a.status === 'pending' && b.status !== 'pending') return -1;
     if (a.status !== 'pending' && b.status === 'pending') return 1;
-    return new Date(b.createdAt) - new Date(a.createdAt);
+    return new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at);
   });
 
-  const filteredBookings = filter === 'all' 
-    ? sortedBookings 
+  const filteredBookings = filter === 'all'
+    ? sortedBookings
     : sortedBookings.filter(b => b.status === filter);
 
   const handleEditClick = (booking) => {
     setEditingBooking(booking);
     setEditFormData({
       ...booking,
-      eventType: booking.eventType?.id || booking.eventType
+      property: booking.property?.id || booking.property,
+      check_in_date: typeof booking.check_in_date === 'string' ? booking.check_in_date : format(booking.check_in_date, 'yyyy-MM-dd'),
+      check_out_date: typeof booking.check_out_date === 'string' ? booking.check_out_date : format(booking.check_out_date, 'yyyy-MM-dd')
     });
     setShowEditModal(true);
   };
 
   const handleSaveEdit = async () => {
-    if (editFormData.startTime >= editFormData.endTime) {
-      alert('Error: End time must be after start time.');
+    const checkIn = new Date(editFormData.check_in_date);
+    const checkOut = new Date(editFormData.check_out_date);
+
+    if (checkOut <= checkIn) {
+      alert('Error: Check-out date must be after check-in date.');
       return;
     }
 
     setActionLoading('save');
     setActionError('');
     try {
-      const eventTypeObj = eventTypes.find(et => et.id === editFormData.eventType) || editFormData.eventType;
+      const propertyObj = properties.find(p => p.id === editFormData.property) || editFormData.property;
       await updateBookingDetails({
         ...editingBooking,
         ...editFormData,
-        eventType: eventTypeObj,
-        eventTypeId: typeof editFormData.eventType === 'string' ? editFormData.eventType : editFormData.eventType?.id,
+        property: propertyObj,
+        property_id: typeof editFormData.property === 'string' ? editFormData.property : editFormData.property?.id,
       });
       setShowEditModal(false);
       setEditingBooking(null);
@@ -119,9 +108,9 @@ const BookingsList = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Booking Requests</h1>
-          <p className="text-gray-500 mt-1">Manage incoming requests and scheduled events</p>
+          <p className="text-gray-500 mt-1">Manage incoming requests and confirmed reservations</p>
         </div>
-        
+
         <div className="flex gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
           {['all', 'pending', 'confirmed', 'declined'].map(f => (
             <button
@@ -129,8 +118,8 @@ const BookingsList = () => {
               onClick={() => setFilter(f)}
               className={cn(
                 "px-4 py-2 rounded-md text-sm font-bold capitalize transition-all",
-                filter === f 
-                  ? "bg-gray-900 text-white shadow-sm" 
+                filter === f
+                  ? "bg-gray-900 text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-50"
               )}
             >
@@ -150,128 +139,136 @@ const BookingsList = () => {
             <p className="text-gray-500">There are no booking requests in this category.</p>
           </div>
         ) : (
-          filteredBookings.map(booking => (
-            <div key={booking.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-              <div className="p-6">
-                <div className="flex flex-col md:flex-row justify-between gap-6">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <StatusBadge status={booking.status} />
-                      <span className="text-xs font-mono text-gray-400">#{booking.id.slice(-8)}</span>
-                    </div>
-                    
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{booking.eventType?.name || 'Unknown Event Type'}</h3>
-                    
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600 mt-3">
-                      <div className="flex items-center gap-2">
-                        <SafeIcon icon={FiIcons.FiCalendar} className="text-gray-400" />
-                        <span className="font-semibold">{format(new Date(booking.date), 'MMMM do, yyyy')}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <SafeIcon icon={FiIcons.FiClock} className="text-gray-400" />
-                        <span>
-                           {TIME_SLOTS.find(t => t.value === booking.startTime)?.label || booking.startTime} - {TIME_SLOTS.find(t => t.value === booking.endTime)?.label || booking.endTime}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <SafeIcon icon={FiIcons.FiUsers} className="text-gray-400" />
-                        <span>{booking.guestCount} guests</span>
-                      </div>
-                    </div>
+          filteredBookings.map(booking => {
+            const checkInDate = typeof booking.check_in_date === 'string' ? parseISO(booking.check_in_date) : booking.check_in_date;
+            const checkOutDate = typeof booking.check_out_date === 'string' ? parseISO(booking.check_out_date) : booking.check_out_date;
+            const nights = differenceInDays(checkOutDate, checkInDate);
 
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Details</h4>
-                      <div className="grid md:grid-cols-2 gap-4 text-sm">
-                         <div>
-                           <span className="text-gray-500 block text-xs">Contact</span>
-                           <span className="font-semibold text-gray-900">{booking.contactName}</span>
-                           <div className="text-gray-600 text-xs">{booking.contactPhone}</div>
-                           <div className="text-gray-600 text-xs">{booking.contactEmail}</div>
-                         </div>
-                         <div>
-                           <span className="text-gray-500 block text-xs">Use Description</span>
-                           <p className="text-gray-700 italic">"{booking.descriptionOfUse}"</p>
-                         </div>
-                         {booking.selectedAddOns && booking.selectedAddOns.length > 0 && (
-                           <div className="md:col-span-2 border-t border-gray-200 pt-2 mt-1">
-                             <span className="text-gray-500 block text-xs mb-1">Add-ons:</span>
-                             <div className="flex flex-wrap gap-2">
-                               {booking.selectedAddOns.map(addonId => (
-                                 <span key={addonId} className="bg-white border border-gray-200 px-2 py-1 rounded text-xs font-medium text-gray-600">
-                                   {addonId}
-                                 </span>
-                               ))}
-                             </div>
-                           </div>
-                         )}
+            return (
+              <div key={booking.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  <div className="flex flex-col md:flex-row justify-between gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <StatusBadge status={booking.status} />
+                        <span className="text-xs font-mono text-gray-400">#{booking.id.slice(-8)}</span>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
-                        <span className="font-bold text-gray-900">Total: {formatCurrency(booking.totalPrice)}</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col gap-3 justify-center md:border-l md:border-gray-100 md:pl-6 min-w-[140px]">
-                    {booking.status === 'pending' && (
-                      <>
-                        <Button
-                          className="w-full justify-center bg-gray-900 hover:bg-gray-800"
-                          onClick={() => handleStatusChange(booking.id, 'confirmed')}
-                          isLoading={actionLoading === booking.id + 'confirmed'}
-                        >
-                          Approve
-                        </Button>
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">{booking.property?.name || 'Unknown Property'}</h3>
 
-                        <Button
-                          variant="outline"
-                          className="w-full justify-center"
-                          onClick={() => handleEditClick(booking)}
-                        >
-                          <SafeIcon icon={FiIcons.FiEdit2} className="mr-2" />
-                          Edit
-                        </Button>
-
-                        <Button
-                          variant="danger"
-                          className="w-full justify-center"
-                          onClick={() => handleStatusChange(booking.id, 'declined')}
-                          isLoading={actionLoading === booking.id + 'declined'}
-                        >
-                          Decline
-                        </Button>
-                      </>
-                    )}
-
-                    {booking.status !== 'pending' && (
-                      <>
-                        <div className="text-center py-2 mb-2">
-                           <span className="text-xs font-bold text-gray-400 uppercase">
-                             {booking.status === 'confirmed' ? 'Approved' : 'Declined'}
-                           </span>
+                      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600 mt-3">
+                        <div className="flex items-center gap-2">
+                          <SafeIcon icon={FiIcons.FiCalendar} className="text-gray-400" />
+                          <span className="font-semibold">Check-in: {format(checkInDate, 'MMM do, yyyy')}</span>
                         </div>
-                        <Button
-                           variant="outline"
-                           className="w-full justify-center text-xs"
-                           onClick={() => handleStatusChange(booking.id, 'pending')}
-                           isLoading={actionLoading === booking.id + 'pending'}
-                        >
-                          Reopen Request
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-center"
-                          onClick={() => handleEditClick(booking)}
-                        >
-                          <SafeIcon icon={FiIcons.FiEdit2} className="mr-2" />
-                          Edit
-                        </Button>
-                      </>
-                    )}
+                        <div className="flex items-center gap-2">
+                          <SafeIcon icon={FiIcons.FiCalendar} className="text-gray-400" />
+                          <span className="font-semibold">Check-out: {format(checkOutDate, 'MMM do, yyyy')}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <SafeIcon icon={FiIcons.FiMoon} className="text-gray-400" />
+                          <span>{nights} {nights === 1 ? 'night' : 'nights'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <SafeIcon icon={FiIcons.FiUsers} className="text-gray-400" />
+                          <span>{booking.guestCount || booking.guest_count} guests</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Details</h4>
+                        <div className="grid md:grid-cols-2 gap-4 text-sm">
+                           <div>
+                             <span className="text-gray-500 block text-xs">Contact</span>
+                             <span className="font-semibold text-gray-900">{booking.contactName || booking.contact_name}</span>
+                             <div className="text-gray-600 text-xs">{booking.contactPhone || booking.contact_phone}</div>
+                             <div className="text-gray-600 text-xs">{booking.contactEmail || booking.contact_email}</div>
+                           </div>
+                           <div>
+                             <span className="text-gray-500 block text-xs">Use Description</span>
+                             <p className="text-gray-700 italic">"{booking.descriptionOfUse || booking.description_of_use}"</p>
+                           </div>
+                           {booking.selectedAddOns && booking.selectedAddOns.length > 0 && (
+                             <div className="md:col-span-2 border-t border-gray-200 pt-2 mt-1">
+                               <span className="text-gray-500 block text-xs mb-1">Add-ons:</span>
+                               <div className="flex flex-wrap gap-2">
+                                 {booking.selectedAddOns.map(addonId => (
+                                   <span key={addonId} className="bg-white border border-gray-200 px-2 py-1 rounded text-xs font-medium text-gray-600">
+                                     {addonId}
+                                   </span>
+                                 ))}
+                               </div>
+                             </div>
+                           )}
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
+                          <span className="font-bold text-gray-900">Total: {formatCurrency(booking.totalPrice || booking.total_price)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 justify-center md:border-l md:border-gray-100 md:pl-6 min-w-[140px]">
+                      {booking.status === 'pending' && (
+                        <>
+                          <Button
+                            className="w-full justify-center bg-gray-900 hover:bg-gray-800"
+                            onClick={() => handleStatusChange(booking.id, 'confirmed')}
+                            isLoading={actionLoading === booking.id + 'confirmed'}
+                          >
+                            Approve
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            className="w-full justify-center"
+                            onClick={() => handleEditClick(booking)}
+                          >
+                            <SafeIcon icon={FiIcons.FiEdit2} className="mr-2" />
+                            Edit
+                          </Button>
+
+                          <Button
+                            variant="danger"
+                            className="w-full justify-center"
+                            onClick={() => handleStatusChange(booking.id, 'declined')}
+                            isLoading={actionLoading === booking.id + 'declined'}
+                          >
+                            Decline
+                          </Button>
+                        </>
+                      )}
+
+                      {booking.status !== 'pending' && (
+                        <>
+                          <div className="text-center py-2 mb-2">
+                             <span className="text-xs font-bold text-gray-400 uppercase">
+                               {booking.status === 'confirmed' ? 'Approved' : 'Declined'}
+                             </span>
+                          </div>
+                          <Button
+                             variant="outline"
+                             className="w-full justify-center text-xs"
+                             onClick={() => handleStatusChange(booking.id, 'pending')}
+                             isLoading={actionLoading === booking.id + 'pending'}
+                          >
+                            Reopen Request
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-center"
+                            onClick={() => handleEditClick(booking)}
+                          >
+                            <SafeIcon icon={FiIcons.FiEdit2} className="mr-2" />
+                            Edit
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -280,22 +277,22 @@ const BookingsList = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-gray-900">Edit Booking #{editingBooking.id.slice(-6)}</h3>
-              <button 
+              <button
                 onClick={() => setShowEditModal(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <SafeIcon icon={FiIcons.FiX} className="text-2xl" />
               </button>
             </div>
-            
+
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Customer Name</label>
                 <input
                   type="text"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.contactName}
-                  onChange={(e) => setEditFormData({...editFormData, contactName: e.target.value})}
+                  value={editFormData.contactName || editFormData.contact_name}
+                  onChange={(e) => setEditFormData({...editFormData, contact_name: e.target.value, contactName: e.target.value})}
                 />
               </div>
               <div>
@@ -303,8 +300,8 @@ const BookingsList = () => {
                 <input
                   type="text"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.contactPhone}
-                  onChange={(e) => setEditFormData({...editFormData, contactPhone: e.target.value})}
+                  value={editFormData.contactPhone || editFormData.contact_phone}
+                  onChange={(e) => setEditFormData({...editFormData, contact_phone: e.target.value, contactPhone: e.target.value})}
                 />
               </div>
               <div className="md:col-span-2">
@@ -312,8 +309,8 @@ const BookingsList = () => {
                 <input
                   type="email"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.contactEmail}
-                  onChange={(e) => setEditFormData({...editFormData, contactEmail: e.target.value})}
+                  value={editFormData.contactEmail || editFormData.contact_email}
+                  onChange={(e) => setEditFormData({...editFormData, contact_email: e.target.value, contactEmail: e.target.value})}
                 />
               </div>
               <div className="md:col-span-2">
@@ -321,64 +318,49 @@ const BookingsList = () => {
                 <input
                   type="number"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.guestCount}
-                  onChange={(e) => setEditFormData({...editFormData, guestCount: parseInt(e.target.value)})}
+                  value={editFormData.guestCount || editFormData.guest_count}
+                  onChange={(e) => setEditFormData({...editFormData, guest_count: parseInt(e.target.value), guestCount: parseInt(e.target.value)})}
                 />
               </div>
-              
+
               <div className="md:col-span-2">
-                <label className="block text-sm font-bold text-gray-700 mb-1">Event Type</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Property</label>
                 <select
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.eventType}
-                  onChange={(e) => setEditFormData({...editFormData, eventType: e.target.value})}
+                  value={editFormData.property}
+                  onChange={(e) => setEditFormData({...editFormData, property: e.target.value})}
                 >
-                  {eventTypes.map(et => (
-                    <option key={et.id} value={et.id}>{et.name}</option>
+                  {properties.map(prop => (
+                    <option key={prop.id} value={prop.id}>{prop.name}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Check-in Date</label>
                 <input
                   type="date"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.date}
-                  onChange={(e) => setEditFormData({...editFormData, date: e.target.value})}
+                  value={editFormData.check_in_date}
+                  onChange={(e) => setEditFormData({...editFormData, check_in_date: e.target.value})}
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Start Time</label>
-                <select
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.startTime}
-                  onChange={(e) => setEditFormData({...editFormData, startTime: e.target.value})}
-                >
-                  {TIME_SLOTS.map(slot => (
-                    <option key={`start-${slot.value}`} value={slot.value}>{slot.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">End Time</label>
-                <select
+                <label className="block text-sm font-bold text-gray-700 mb-1">Check-out Date</label>
+                <input
+                  type="date"
                   className={cn(
                     "w-full p-2 border rounded-lg transition-colors",
-                    editFormData.startTime >= editFormData.endTime 
-                      ? "border-red-500 bg-red-50 text-red-900" 
+                    new Date(editFormData.check_out_date) <= new Date(editFormData.check_in_date)
+                      ? "border-red-500 bg-red-50 text-red-900"
                       : "border-gray-300"
                   )}
-                  value={editFormData.endTime}
-                  onChange={(e) => setEditFormData({...editFormData, endTime: e.target.value})}
-                >
-                  {TIME_SLOTS.map(slot => (
-                    <option key={`end-${slot.value}`} value={slot.value}>{slot.label}</option>
-                  ))}
-                </select>
-                {editFormData.startTime >= editFormData.endTime && (
-                  <p className="text-xs text-red-600 mt-1 font-bold">End time must be after start time.</p>
+                  value={editFormData.check_out_date}
+                  onChange={(e) => setEditFormData({...editFormData, check_out_date: e.target.value})}
+                />
+                {new Date(editFormData.check_out_date) <= new Date(editFormData.check_in_date) && (
+                  <p className="text-xs text-red-600 mt-1 font-bold">Check-out date must be after check-in date.</p>
                 )}
               </div>
 
@@ -386,18 +368,18 @@ const BookingsList = () => {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Description of Use</label>
                 <textarea
                   className="w-full p-2 border border-gray-300 rounded-lg h-24"
-                  value={editFormData.descriptionOfUse}
-                  onChange={(e) => setEditFormData({...editFormData, descriptionOfUse: e.target.value})}
+                  value={editFormData.descriptionOfUse || editFormData.description_of_use}
+                  onChange={(e) => setEditFormData({...editFormData, description_of_use: e.target.value, descriptionOfUse: e.target.value})}
                 />
               </div>
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
               <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
-              <Button 
+              <Button
                 onClick={handleSaveEdit}
-                disabled={editFormData.startTime >= editFormData.endTime}
-                className={cn(editFormData.startTime >= editFormData.endTime && "opacity-50 cursor-not-allowed")}
+                disabled={new Date(editFormData.check_out_date) <= new Date(editFormData.check_in_date)}
+                className={cn(new Date(editFormData.check_out_date) <= new Date(editFormData.check_in_date) && "opacity-50 cursor-not-allowed")}
               >
                 Save Changes
               </Button>

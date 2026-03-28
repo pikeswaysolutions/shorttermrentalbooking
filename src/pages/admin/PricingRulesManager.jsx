@@ -4,63 +4,69 @@ import { Button } from '../../components/ui/Button';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../../common/SafeIcon';
 import { cn, formatCurrency } from '../../lib/utils';
-import { set, format } from 'date-fns';
+import { format } from 'date-fns';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Helper to generate 30-minute time slots
-const generateTimeSlots = () => {
-  const slots = [];
-  for (let i = 0; i < 24 * 2; i++) {
-    const minutes = i * 30;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    const timeString = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    const date = set(new Date(), { hours, minutes: mins, seconds: 0 });
-    const label = format(date, 'h:mm a');
-    slots.push({ value: timeString, label });
-  }
-  return slots;
-};
-
-const TIME_SLOTS = generateTimeSlots();
-
 const PricingRulesManager = () => {
-  const { pricingRules, addPricingRule, updatePricingRule, deletePricingRule, eventTypes } = useStore();
+  const { pricingRules, addPricingRule, updatePricingRule, deletePricingRule, properties } = useStore();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    eventTypeId: null,
+    property_id: null,
+    rule_type: 'day_of_week',
     days: [],
-    startTime: '00:00',
-    endTime: '23:30',
-    hourlyRate: 100
+    day_of_week: null,
+    specific_date: '',
+    start_date: '',
+    end_date: '',
+    nightly_rate: 100,
+    priority: 0
   });
 
   const handleEdit = (rule) => {
     setEditingId(rule.id);
     setFormData({
       name: rule.name,
-      eventTypeId: rule.eventTypeId,
-      days: [...rule.days],
-      startTime: rule.startTime,
-      endTime: rule.endTime,
-      hourlyRate: rule.hourlyRate
+      property_id: rule.property_id,
+      rule_type: rule.rule_type,
+      days: rule.days || [],
+      day_of_week: rule.day_of_week,
+      specific_date: rule.specific_date || '',
+      start_date: rule.start_date || '',
+      end_date: rule.end_date || '',
+      nightly_rate: rule.nightly_rate,
+      priority: rule.priority || 0
     });
     setIsAdding(true);
   };
 
   const handleSave = async () => {
-    if (!formData.name || formData.days.length === 0) {
-      alert('Please fill in all required fields');
+    if (!formData.name) {
+      alert('Please provide a rule name');
+      return;
+    }
+
+    if (formData.rule_type === 'day_of_week' && formData.days.length === 0) {
+      alert('Please select at least one day of the week');
+      return;
+    }
+
+    if (formData.rule_type === 'date_override' && !formData.specific_date) {
+      alert('Please select a specific date');
+      return;
+    }
+
+    if (formData.rule_type === 'date_range' && (!formData.start_date || !formData.end_date)) {
+      alert('Please select both start and end dates');
       return;
     }
 
     const ruleData = {
       ...formData,
-      eventTypeId: formData.eventTypeId === '' ? null : formData.eventTypeId
+      property_id: formData.property_id === '' ? null : formData.property_id
     };
 
     setSaving(true);
@@ -83,11 +89,15 @@ const PricingRulesManager = () => {
     setEditingId(null);
     setFormData({
       name: '',
-      eventTypeId: null,
+      property_id: null,
+      rule_type: 'day_of_week',
       days: [],
-      startTime: '00:00',
-      endTime: '23:30',
-      hourlyRate: 100
+      day_of_week: null,
+      specific_date: '',
+      start_date: '',
+      end_date: '',
+      nightly_rate: 100,
+      priority: 0
     });
   };
 
@@ -142,74 +152,140 @@ const PricingRulesManager = () => {
               <label className="block text-sm font-bold text-gray-700 mb-1">Applies To</label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                value={formData.eventTypeId || ''}
-                onChange={(e) => setFormData({ ...formData, eventTypeId: e.target.value || null })}
+                value={formData.property_id || ''}
+                onChange={(e) => setFormData({ ...formData, property_id: e.target.value || null })}
               >
-                <option value="">All Event Types</option>
-                {eventTypes.map(et => (
-                  <option key={et.id} value={et.id}>{et.name}</option>
+                <option value="">All Properties</option>
+                {properties.map(prop => (
+                  <option key={prop.id} value={prop.id}>{prop.name}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Days of Week *</label>
-              <div className="flex flex-wrap gap-2">
-                {DAYS.map((day, idx) => (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleDay(idx)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-sm font-bold transition-all border",
-                      formData.days.includes(idx)
-                        ? "bg-primary text-white border-primary"
-                        : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
-                    )}
-                  >
-                    {day.slice(0, 3)}
-                  </button>
-                ))}
+              <label className="block text-sm font-bold text-gray-700 mb-1">Rule Type *</label>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, rule_type: 'day_of_week' })}
+                  className={cn(
+                    "p-3 rounded-lg border-2 font-bold text-sm transition-all",
+                    formData.rule_type === 'day_of_week'
+                      ? "border-primary bg-blue-50 text-primary"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                  )}
+                >
+                  Day of Week
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, rule_type: 'date_override' })}
+                  className={cn(
+                    "p-3 rounded-lg border-2 font-bold text-sm transition-all",
+                    formData.rule_type === 'date_override'
+                      ? "border-primary bg-blue-50 text-primary"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                  )}
+                >
+                  Specific Date
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, rule_type: 'date_range' })}
+                  className={cn(
+                    "p-3 rounded-lg border-2 font-bold text-sm transition-all",
+                    formData.rule_type === 'date_range'
+                      ? "border-primary bg-blue-50 text-primary"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                  )}
+                >
+                  Date Range
+                </button>
               </div>
             </div>
+
+            {formData.rule_type === 'day_of_week' && (
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Days of Week *</label>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS.map((day, idx) => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(idx)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-sm font-bold transition-all border",
+                        formData.days.includes(idx)
+                          ? "bg-primary text-white border-primary"
+                          : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                      )}
+                    >
+                      {day.slice(0, 3)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {formData.rule_type === 'date_override' && (
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Specific Date *</label>
+                <input
+                  type="date"
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  value={formData.specific_date}
+                  onChange={(e) => setFormData({ ...formData, specific_date: e.target.value })}
+                />
+              </div>
+            )}
+
+            {formData.rule_type === 'date_range' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">End Date *</label>
+                  <input
+                    type="date"
+                    className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Start Time *</label>
-                <select
+                <label className="block text-sm font-bold text-gray-700 mb-1">Nightly Rate ($) *</label>
+                <input
+                  type="number"
                   className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                  value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                >
-                  {TIME_SLOTS.map(slot => (
-                    <option key={`start-${slot.value}`} value={slot.value}>{slot.label}</option>
-                  ))}
-                </select>
+                  value={formData.nightly_rate}
+                  onChange={(e) => setFormData({ ...formData, nightly_rate: parseFloat(e.target.value) })}
+                  min="0"
+                  step="10"
+                />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">End Time *</label>
-                <select
+                <label className="block text-sm font-bold text-gray-700 mb-1">Priority</label>
+                <input
+                  type="number"
                   className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                  value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                >
-                  {TIME_SLOTS.map(slot => (
-                    <option key={`end-${slot.value}`} value={slot.value}>{slot.label}</option>
-                  ))}
-                </select>
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
+                  min="0"
+                  placeholder="0"
+                />
+                <p className="text-xs text-gray-500 mt-1">Higher priority wins when multiple rules match</p>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Hourly Rate ($) *</label>
-              <input
-                type="number"
-                className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                value={formData.hourlyRate}
-                onChange={(e) => setFormData({ ...formData, hourlyRate: parseFloat(e.target.value) })}
-                min="0"
-                step="10"
-              />
             </div>
           </div>
 
@@ -226,27 +302,48 @@ const PricingRulesManager = () => {
         {pricingRules.map((rule) => (
           <div key={rule.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex justify-between items-center">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-2">
                 <h3 className="font-bold text-lg text-gray-900">{rule.name}</h3>
-                {rule.eventTypeId && (
+                {rule.property_id && (
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">
-                    {eventTypes.find(et => et.id === rule.eventTypeId)?.name || 'Unknown Type'}
+                    {properties.find(p => p.id === rule.property_id)?.name || 'Unknown Property'}
                   </span>
                 )}
+                <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-bold">
+                  Priority: {rule.priority || 0}
+                </span>
               </div>
               <div className="text-sm text-gray-600 space-y-1">
                 <p>
-                  <SafeIcon icon={FiIcons.FiCalendar} className="inline mr-1" />
-                  {rule.days.map(d => DAYS[d].slice(0, 3)).join(', ')}
+                  <SafeIcon icon={FiIcons.FiTag} className="inline mr-1" />
+                  <span className="font-semibold">
+                    {rule.rule_type === 'day_of_week' && 'Day of Week'}
+                    {rule.rule_type === 'date_override' && 'Specific Date'}
+                    {rule.rule_type === 'date_range' && 'Date Range'}
+                  </span>
                 </p>
-                <p>
-                  <SafeIcon icon={FiIcons.FiClock} className="inline mr-1" />
-                  {TIME_SLOTS.find(t => t.value === rule.startTime)?.label || rule.startTime} - {TIME_SLOTS.find(t => t.value === rule.endTime)?.label || rule.endTime}
-                </p>
+                {rule.rule_type === 'day_of_week' && rule.days && (
+                  <p>
+                    <SafeIcon icon={FiIcons.FiCalendar} className="inline mr-1" />
+                    {rule.days.map(d => DAYS[d].slice(0, 3)).join(', ')}
+                  </p>
+                )}
+                {rule.rule_type === 'date_override' && rule.specific_date && (
+                  <p>
+                    <SafeIcon icon={FiIcons.FiCalendar} className="inline mr-1" />
+                    {format(new Date(rule.specific_date), 'MMM d, yyyy')}
+                  </p>
+                )}
+                {rule.rule_type === 'date_range' && rule.start_date && rule.end_date && (
+                  <p>
+                    <SafeIcon icon={FiIcons.FiCalendar} className="inline mr-1" />
+                    {format(new Date(rule.start_date), 'MMM d, yyyy')} - {format(new Date(rule.end_date), 'MMM d, yyyy')}
+                  </p>
+                )}
               </div>
             </div>
             <div className="text-right flex items-center gap-4 ml-4">
-              <span className="text-xl font-bold text-primary">{formatCurrency(rule.hourlyRate)}/hr</span>
+              <span className="text-xl font-bold text-primary">{formatCurrency(rule.nightly_rate)}/night</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleEdit(rule)}>
                   <SafeIcon icon={FiIcons.FiEdit2} />

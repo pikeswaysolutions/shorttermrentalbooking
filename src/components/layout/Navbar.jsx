@@ -25,7 +25,7 @@ const Navbar = () => {
     { path: '/admin/dashboard', icon: FiIcons.FiGrid, label: 'Dashboard' },
     { path: '/admin/bookings', icon: FiIcons.FiInbox, label: 'Requests' },
     { path: '/admin/calendar', icon: FiIcons.FiCalendar, label: 'Calendar' },
-    { path: '/admin/event-types', icon: FiIcons.FiTag, label: 'Event Types' },
+    { path: '/admin/properties', icon: FiIcons.FiTag, label: 'Properties' },
     { path: '/admin/pricing-rules', icon: FiIcons.FiDollarSign, label: 'Pricing' },
     { path: '/admin/addons', icon: FiIcons.FiPackage, label: 'Add-ons' },
     { path: '/admin/settings', icon: FiIcons.FiSettings, label: 'Settings' },
