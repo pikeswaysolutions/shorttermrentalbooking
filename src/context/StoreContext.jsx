@@ -4,7 +4,7 @@ import * as api from '../lib/api';
 const StoreContext = createContext();
 
 export function StoreProvider({ children }) {
-  const [eventTypes, setEventTypes] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [pricingRules, setPricingRules] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [blockedDates, setBlockedDates] = useState([]);
@@ -15,21 +15,21 @@ export function StoreProvider({ children }) {
   const loadAllData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [etData, prData, aoData, bdData, sData] = await Promise.all([
-        api.fetchEventTypes(),
+      const [propData, prData, aoData, bdData, sData] = await Promise.all([
+        api.fetchProperties(),
         api.fetchPricingRules(),
         api.fetchAddOns(),
         api.fetchBlockedDates(),
         api.fetchSettings(),
       ]);
 
-      setEventTypes(etData);
+      setProperties(propData);
       setPricingRules(prData);
       setAddOns(aoData);
       setBlockedDates(bdData);
-      setSettings(sData || { primaryColor: '#1d4ed8', accentColor: '#7c3aed', companyName: 'Event Space' });
+      setSettings(sData || { primaryColor: '#1d4ed8', accentColor: '#7c3aed', companyName: 'Luxe Rentals' });
 
-      const bData = await api.fetchBookings(etData);
+      const bData = await api.fetchBookings(propData);
       setBookings(bData);
     } catch (err) {
       console.error('Failed to load data:', err);
@@ -52,21 +52,21 @@ export function StoreProvider({ children }) {
     }
   }, [settings]);
 
-  const addEventType = async (data) => {
-    const created = await api.createEventType(data);
-    setEventTypes(prev => [...prev, created]);
+  const addProperty = async (data) => {
+    const created = await api.createProperty(data);
+    setProperties(prev => [...prev, created]);
     return created;
   };
 
-  const updateEventType = async (data) => {
-    const updated = await api.updateEventType(data.id, data);
-    setEventTypes(prev => prev.map(et => et.id === data.id ? updated : et));
+  const updateProperty = async (data) => {
+    const updated = await api.updateProperty(data.id, data);
+    setProperties(prev => prev.map(p => p.id === data.id ? updated : p));
     return updated;
   };
 
-  const deleteEventType = async (id) => {
-    await api.deleteEventType(id);
-    setEventTypes(prev => prev.filter(et => et.id !== id));
+  const deleteProperty = async (id) => {
+    await api.deleteProperty(id);
+    setProperties(prev => prev.filter(p => p.id !== id));
   };
 
   const addPricingRule = async (data) => {
@@ -104,7 +104,7 @@ export function StoreProvider({ children }) {
   };
 
   const addBooking = async (bookingData) => {
-    const created = await api.createBooking(bookingData, pricingRules, addOns, eventTypes);
+    const created = await api.createBooking(bookingData, pricingRules, addOns, properties);
     setBookings(prev => [created, ...prev]);
     return created;
   };
@@ -122,12 +122,12 @@ export function StoreProvider({ children }) {
       userId,
       pricingRules,
       addOns,
-      eventTypes
+      properties
     );
-    const eventType = eventTypes.find(et => et.id === result.event_type_id);
+    const property = properties.find(p => p.id === result.property_id);
     const mapped = {
       ...updatedBooking,
-      eventType,
+      property,
       totalPrice: Number(result.total_price),
       version: result.version,
       updatedAt: result.updated_at,
@@ -160,11 +160,11 @@ export function StoreProvider({ children }) {
     return updated;
   };
 
-  const getAddOnsForEventType = useCallback((eventTypeId) => {
+  const getAddOnsForProperty = useCallback((propertyId) => {
     return addOns.filter(addon => {
       if (!addon.active) return false;
-      if (!addon.eventTypeIds || addon.eventTypeIds.length === 0) return true;
-      return addon.eventTypeIds.includes(eventTypeId);
+      if (!addon.property_ids || addon.property_ids.length === 0) return true;
+      return addon.property_ids.includes(propertyId);
     });
   }, [addOns]);
 
@@ -175,22 +175,25 @@ export function StoreProvider({ children }) {
     });
   }, [bookings]);
 
-  const getBlockedTimesForDate = useCallback((date) => {
-    return blockedDates.filter(block => block.date === date);
+  const getBlockedDatesForRange = useCallback((startDate, endDate) => {
+    return blockedDates.filter(block => {
+      const blockDate = block.date;
+      return blockDate >= startDate && blockDate <= endDate;
+    });
   }, [blockedDates]);
 
   return (
     <StoreContext.Provider value={{
-      eventTypes, setEventTypes,
-      addEventType, updateEventType, deleteEventType,
+      properties, setProperties,
+      addProperty, updateProperty, deleteProperty,
       pricingRules, setPricingRules,
       addPricingRule, updatePricingRule, deletePricingRule,
       bookings, addBooking, updateBookingStatus, updateBookingDetails,
       getBookingsForDate,
-      blockedDates, addBlockedDate, removeBlockedDate, getBlockedTimesForDate,
+      blockedDates, addBlockedDate, removeBlockedDate, getBlockedDatesForRange,
       addOns, setAddOns,
       addAddOn, updateAddOn, deleteAddOn,
-      getAddOnsForEventType,
+      getAddOnsForProperty,
       settings, updateSettings,
       isLoading,
     }}>

@@ -6,7 +6,7 @@ import SafeIcon from '../../common/SafeIcon';
 import { cn } from '../../lib/utils';
 
 const Settings = () => {
-  const { settings, updateSettings, eventTypes } = useStore();
+  const { settings, updateSettings, properties } = useStore();
   const [activeTab, setActiveTab] = useState('branding');
   const [formData, setFormData] = useState(settings);
   const [isSaved, setIsSaved] = useState(false);
@@ -123,12 +123,12 @@ const Settings = () => {
                   Skip the event type selection and send users directly to the booking flow for a specific event type.
                 </p>
                 <code className="block bg-gray-900 text-gray-100 p-2 rounded text-xs overflow-x-auto">
-                  {`${appUrl}/booking?eventType=EVENT_ID`}
+                  {`${appUrl}/booking?property=EVENT_ID`}
                 </code>
                 <div className="mt-3 text-xs text-gray-600">
                   <strong>Example HTML:</strong>
                   <pre className="bg-white border border-gray-200 p-2 rounded mt-1 overflow-x-auto">
-{`<a href="${appUrl}/booking?eventType=abc123" class="btn">
+{`<a href="${appUrl}/booking?property=abc123" class="btn">
   Book Wedding Package
 </a>`}
                   </pre>
@@ -144,12 +144,12 @@ const Settings = () => {
                   You can combine parameters to pre-select both the event type and date.
                 </p>
                 <code className="block bg-gray-900 text-gray-100 p-2 rounded text-xs overflow-x-auto">
-                  {`${appUrl}/booking?eventType=EVENT_ID&date=2024-12-25`}
+                  {`${appUrl}/booking?property=EVENT_ID&date=2024-12-25`}
                 </code>
                 <div className="mt-3 text-xs text-gray-600">
                   <strong>Example HTML:</strong>
                   <pre className="bg-white border border-gray-200 p-2 rounded mt-1 overflow-x-auto">
-{`<a href="${appUrl}/booking?eventType=abc123&date=2024-12-31" class="btn">
+{`<a href="${appUrl}/booking?property=abc123&date=2024-12-31" class="btn">
   Book New Year's Eve Event
 </a>`}
                   </pre>
@@ -229,7 +229,7 @@ const Settings = () => {
                 <div>
                   <strong className="text-gray-900 text-sm">Service Page CTAs</strong>
                   <p className="text-xs text-gray-600 mt-1">
-                    On your "Wedding Packages" page, add a button with <code className="bg-gray-200 px-1 rounded">/booking?eventType=wedding-id</code>
+                    On your "Wedding Packages" page, add a button with <code className="bg-gray-200 px-1 rounded">/booking?property=wedding-id</code>
                   </p>
                 </div>
               </div>
@@ -681,32 +681,32 @@ const Settings = () => {
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <SafeIcon icon={FiIcons.FiTag} />
-                  Direct Event Type Links
+                  Direct Property Links
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  These links skip the event type selection and take users directly to the date/time picker for a specific event type.
+                  These links skip the property selection and take users directly to the booking form for a specific property.
                 </p>
                 <div className="space-y-3">
-                  {eventTypes.filter(et => et.active).map(type => (
-                    <div key={type.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                  {properties.filter(p => p.is_active).map(property => (
+                    <div key={property.id} className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-bold text-gray-900">{type.name}</h4>
+                        <h4 className="font-bold text-gray-900">{property.name}</h4>
                         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
-                          Starting at ${type.baseRate}/hr
+                          Starting at ${property.base_nightly_rate}/night
                         </span>
                       </div>
                       <div className="relative group">
                         <input
                           type="text"
                           readOnly
-                          value={`${appUrl}/booking?eventType=${type.id}`}
+                          value={`${appUrl}/booking?property=${property.id}`}
                           className="w-full p-2 pr-24 border border-gray-200 rounded-lg bg-gray-50 text-xs font-mono"
                         />
                         <button
-                          onClick={() => copyToClipboard(`${appUrl}/booking?eventType=${type.id}`, type.id)}
+                          onClick={() => copyToClipboard(`${appUrl}/booking?property=${property.id}`, property.id)}
                           className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-primary text-white rounded-md text-xs font-bold hover:bg-blue-700 transition-colors"
                         >
-                          {copiedLink === type.id ? 'Copied!' : 'Copy'}
+                          {copiedLink === property.id ? 'Copied!' : 'Copy'}
                         </button>
                       </div>
                     </div>
@@ -726,7 +726,7 @@ const Settings = () => {
 </a>
 
 <!-- Event Type Button -->
-<a href="${appUrl}/booking?eventType=EVENT_ID" class="button">
+<a href="${appUrl}/booking?property=EVENT_ID" class="button">
   Book Wedding
 </a>`}
                 </pre>

@@ -169,7 +169,7 @@ const AddOnsManager = () => {
                         ? "bg-primary border-primary"
                         : "border-gray-400 bg-white"
                     )}>
-                      {formData.eventTypeIds.includes(eventType.id) && (
+                      {formData.property_ids.includes(property.id) && (
                         <SafeIcon icon={FiIcons.FiCheck} className="text-white text-xs" />
                       )}
                     </div>
