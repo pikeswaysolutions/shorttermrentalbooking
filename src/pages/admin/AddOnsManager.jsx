@@ -16,14 +16,14 @@ const AddOnsManager = () => {
     price: 50,
     type: 'flat',
     active: true,
-    property_ids: []
+    propertyIds: []
   });
 
   const handleEdit = (addon) => {
     setEditingId(addon.id);
     setFormData({
       ...addon,
-      property_ids: addon.property_ids || []
+      propertyIds: addon.propertyIds || []
     });
     setIsAdding(true);
   };
@@ -43,7 +43,7 @@ const AddOnsManager = () => {
       }
       setIsAdding(false);
       setEditingId(null);
-      setFormData({ name: '', description: '', price: 50, type: 'flat', active: true, property_ids: [] });
+      setFormData({ name: '', description: '', price: 50, type: 'flat', active: true, propertyIds: [] });
     } catch (err) {
       alert(err.message || 'Failed to save add-on.');
     } finally {
@@ -64,15 +64,15 @@ const AddOnsManager = () => {
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: '', description: '', price: 50, type: 'flat', active: true, property_ids: [] });
+    setFormData({ name: '', description: '', price: 50, type: 'flat', active: true, propertyIds: [] });
   };
 
   const togglePropertyId = (propertyId) => {
     setFormData(prev => ({
       ...prev,
-      property_ids: prev.property_ids.includes(propertyId)
-        ? prev.property_ids.filter(id => id !== propertyId)
-        : [...prev.property_ids, propertyId]
+      propertyIds: prev.propertyIds.includes(propertyId)
+        ? prev.propertyIds.filter(id => id !== propertyId)
+        : [...prev.propertyIds, propertyId]
     }));
   };
 
@@ -151,36 +151,36 @@ const AddOnsManager = () => {
                 <span className="ml-2 text-xs font-normal text-gray-500">(Leave all unchecked for all types)</span>
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {properties.filter(p => p.is_active).map(property => (
+                {properties.filter(p => p.isActive).map(property => (
                   <button
                     key={property.id}
                     type="button"
                     onClick={() => togglePropertyId(property.id)}
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-colors",
-                      formData.property_ids.includes(property.id)
+                      formData.propertyIds.includes(property.id)
                         ? "border-primary bg-blue-50"
                         : "border-gray-200 bg-white hover:border-gray-300"
                     )}
                   >
                     <div className={cn(
                       "w-5 h-5 rounded border flex items-center justify-center flex-shrink-0",
-                      formData.property_ids.includes(property.id)
+                      formData.propertyIds.includes(property.id)
                         ? "bg-primary border-primary"
                         : "border-gray-400 bg-white"
                     )}>
-                      {formData.property_ids.includes(property.id) && (
+                      {formData.propertyIds.includes(property.id) && (
                         <SafeIcon icon={FiIcons.FiCheck} className="text-white text-xs" />
                       )}
                     </div>
                     <div>
                       <p className="font-bold text-sm text-gray-900">{property.name}</p>
-                      <p className="text-xs text-gray-500">Starting at {formatCurrency(property.base_nightly_rate)}/night</p>
+                      <p className="text-xs text-gray-500">Starting at {formatCurrency(property.baseNightlyRate)}/night</p>
                     </div>
                   </button>
                 ))}
               </div>
-              {formData.property_ids.length === 0 && (
+              {formData.propertyIds.length === 0 && (
                 <p className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100">
                   <SafeIcon icon={FiIcons.FiInfo} className="inline mr-1" />
                   This add-on will be available for all properties
@@ -232,7 +232,7 @@ const AddOnsManager = () => {
                 <div className="mt-2 flex items-start gap-2">
                   <SafeIcon icon={FiIcons.FiTag} className="text-gray-400 mt-0.5 flex-shrink-0" />
                   <span className="text-xs text-gray-600">
-                    <span className="font-semibold">Available for:</span> {getPropertyNames(addon.property_ids)}
+                    <span className="font-semibold">Available for:</span> {getPropertyNames(addon.propertyIds)}
                   </span>
                 </div>
               </div>

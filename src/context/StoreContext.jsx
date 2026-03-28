@@ -163,15 +163,15 @@ export function StoreProvider({ children }) {
   const getAddOnsForProperty = useCallback((propertyId) => {
     return addOns.filter(addon => {
       if (!addon.active) return false;
-      if (!addon.property_ids || addon.property_ids.length === 0) return true;
-      return addon.property_ids.includes(propertyId);
+      if (!addon.propertyIds || addon.propertyIds.length === 0) return true;
+      return addon.propertyIds.includes(propertyId);
     });
   }, [addOns]);
 
   const getBookingsForDate = useCallback((date) => {
     return bookings.filter(booking => {
       if (booking.status === 'declined' || booking.status === 'cancelled') return false;
-      return booking.date === date;
+      return date >= booking.checkInDate && date < booking.checkOutDate;
     });
   }, [bookings]);
 
