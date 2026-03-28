@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { format, parseISO, differenceInDays, addDays } from "npm:date-fns@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +8,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, X-Client-Info, Apikey",
 };
+
+function formatTime(time24: string): string {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -20,7 +28,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: settings } = await supabase
       .from("settings")
-      .select("api_keys_encrypted")
+      .select("api_keys_encrypted, company_name, standard_check_in_time, standard_check_out_time")
       .eq("id", 1)
       .maybeSingle();
 
@@ -35,27 +43,54 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    const threeDaysAgoStr = threeDaysAgo.toISOString().split("T")[0];
+    const companyName = settings?.company_name || "Luxe Rentals";
+    const checkInTime = settings?.standard_check_in_time || "15:00";
+    const checkOutTime = settings?.standard_check_out_time || "11:00";
 
-    const { data: bookings, error: fetchError } = await supabase
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
+    const tomorrowStr = format(addDays(today, 1), 'yyyy-MM-dd');
+    const yesterdayStr = format(addDays(today, -1), 'yyyy-MM-dd');
+
+    // Find bookings that need pre-arrival check-in instructions (check-in tomorrow)
+    const { data: preArrivalBookings, error: preArrivalError } = await supabase
       .from("bookings")
-      .select("*, event_types(*)")
+      .select("*, properties(*)")
       .eq("status", "confirmed")
       .eq("followup_email_sent", false)
-      .lte("date", threeDaysAgoStr);
+      .eq("check_in_date", tomorrowStr);
 
-    if (fetchError) {
-      return new Response(JSON.stringify({ error: fetchError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Find bookings that need post-checkout review requests (checked out yesterday)
+    const { data: postCheckoutBookings, error: postCheckoutError } = await supabase
+      .from("bookings")
+      .select("*, properties(*)")
+      .eq("status", "confirmed")
+      .eq("followup_email_sent", false)
+      .eq("check_out_date", yesterdayStr);
+
+    if (preArrivalError || postCheckoutError) {
+      return new Response(
+        JSON.stringify({
+          error: preArrivalError?.message || postCheckoutError?.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    if (!bookings || bookings.length === 0) {
+    const allBookings = [
+      ...(preArrivalBookings || []).map(b => ({ ...b, emailType: 'pre_arrival' })),
+      ...(postCheckoutBookings || []).map(b => ({ ...b, emailType: 'post_checkout' }))
+    ];
+
+    if (allBookings.length === 0) {
       return new Response(
-        JSON.stringify({ message: "No follow-up emails to send", count: 0 }),
+        JSON.stringify({
+          message: "No follow-up emails to send",
+          count: 0
+        }),
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -66,28 +101,57 @@ Deno.serve(async (req: Request) => {
     let sentCount = 0;
     let failedCount = 0;
 
-    for (const booking of bookings) {
-      const templateId =
-        booking.event_types?.email_templates?.followupTemplateId;
+    for (const booking of allBookings) {
+      const isPreArrival = booking.emailType === 'pre_arrival';
+
+      // Determine which template to use
+      const templateId = isPreArrival
+        ? booking.properties?.email_templates?.preArrivalTemplateId
+        : booking.properties?.email_templates?.followupTemplateId;
 
       if (!templateId) {
         await supabase.from("email_logs").insert({
           booking_id: booking.id,
-          type: "followup",
+          type: isPreArrival ? "pre_arrival" : "followup",
           status: "failed",
-          error_message:
-            "No follow-up email template ID configured for this event type",
+          error_message: `No ${isPreArrival ? 'pre-arrival' : 'follow-up'} email template ID configured for this property`,
         });
         failedCount++;
         continue;
       }
 
-      const startTime = booking.start_time?.slice(0, 5);
+      const propertyName = booking.properties?.name || "Property";
+      const checkInDateFormatted = format(parseISO(booking.check_in_date), 'EEEE, MMMM d');
+      const checkOutDateFormatted = format(parseISO(booking.check_out_date), 'EEEE, MMMM d');
+      const nights = differenceInDays(
+        parseISO(booking.check_out_date),
+        parseISO(booking.check_in_date)
+      );
 
-      let formattedDate = booking.date || "";
-      if (formattedDate && formattedDate.includes("-")) {
-        const [y, m, d] = formattedDate.split("-");
-        if (y && m && d) formattedDate = `${m}-${d}-${y}`;
+      let subject: string;
+      let emailVariables: Record<string, string>;
+
+      if (isPreArrival) {
+        subject = `Check-In Instructions - ${propertyName}`;
+        emailVariables = {
+          PropertyName: propertyName,
+          ContactName: booking.contact_name,
+          CheckInDate: checkInDateFormatted,
+          CheckInTime: formatTime(checkInTime),
+          CheckOutDate: checkOutDateFormatted,
+          CheckOutTime: formatTime(checkOutTime),
+          Nights: nights.toString(),
+          GuestCount: booking.guest_count.toString(),
+        };
+      } else {
+        subject = `How was your stay at ${propertyName}?`;
+        emailVariables = {
+          PropertyName: propertyName,
+          ContactName: booking.contact_name,
+          CheckInDate: checkInDateFormatted,
+          CheckOutDate: checkOutDateFormatted,
+          Nights: nights.toString(),
+        };
       }
 
       const response = await fetch("https://api.resend.com/emails", {
@@ -97,17 +161,13 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Rivers End Events <riversendevents@pikeswaysolutions.com>",
+          from: `${companyName} <bookings@luxerentals.com>`,
           to: [booking.contact_email],
-          reply_to: "bookings@riversendevents.com",
-          subject: `How was your event? - ${booking.event_types?.name || "Event"}`,
+          reply_to: "bookings@luxerentals.com",
+          subject: subject,
           template: {
             id: templateId,
-            variables: {
-              EventType: booking.event_types?.name || "Event",
-              EventDate: formattedDate,
-              EventStart: startTime || "",
-            },
+            variables: emailVariables,
           },
         }),
       });
@@ -119,7 +179,7 @@ Deno.serve(async (req: Request) => {
           .eq("id", booking.id);
         await supabase.from("email_logs").insert({
           booking_id: booking.id,
-          type: "followup",
+          type: isPreArrival ? "pre_arrival" : "followup",
           status: "sent",
         });
         sentCount++;
@@ -127,7 +187,7 @@ Deno.serve(async (req: Request) => {
         const errBody = await response.text();
         await supabase.from("email_logs").insert({
           booking_id: booking.id,
-          type: "followup",
+          type: isPreArrival ? "pre_arrival" : "followup",
           status: "failed",
           error_message: errBody,
         });
@@ -139,7 +199,13 @@ Deno.serve(async (req: Request) => {
       entity_type: "email",
       entity_id: "followup-batch",
       action: "followup_batch_sent",
-      new_value: { sent: sentCount, failed: failedCount, total: bookings.length },
+      new_value: {
+        sent: sentCount,
+        failed: failedCount,
+        total: allBookings.length,
+        pre_arrival_count: allBookings.filter(b => b.emailType === 'pre_arrival').length,
+        post_checkout_count: allBookings.filter(b => b.emailType === 'post_checkout').length,
+      },
     });
 
     return new Response(
@@ -147,7 +213,7 @@ Deno.serve(async (req: Request) => {
         message: "Follow-up emails processed",
         sent: sentCount,
         failed: failedCount,
-        total: bookings.length,
+        total: allBookings.length,
       }),
       {
         status: 200,

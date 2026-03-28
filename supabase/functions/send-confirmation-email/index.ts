@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { format, parseISO, differenceInDays } from "npm:date-fns@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +8,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, X-Client-Info, Apikey",
 };
+
+function formatTime(time24: string): string {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -32,7 +47,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("*, event_types(*)")
+      .select("*, properties(*)")
       .eq("id", bookingId)
       .maybeSingle();
 
@@ -48,7 +63,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: settings } = await supabase
       .from("settings")
-      .select("api_keys_encrypted")
+      .select("api_keys_encrypted, company_name, standard_check_in_time, standard_check_out_time")
       .eq("id", 1)
       .maybeSingle();
 
@@ -74,7 +89,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const templateId =
-      booking.event_types?.email_templates?.confirmationTemplateId;
+      booking.properties?.email_templates?.confirmationTemplateId;
     if (!templateId) {
       await supabase
         .from("bookings")
@@ -85,12 +100,12 @@ Deno.serve(async (req: Request) => {
         type: "confirmation",
         status: "failed",
         error_message:
-          "No confirmation email template configured for this event type",
+          "No confirmation email template configured for this property",
       });
       return new Response(
         JSON.stringify({
           error:
-            "No confirmation email template configured for this event type",
+            "No confirmation email template configured for this property",
         }),
         {
           status: 400,
@@ -99,13 +114,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const startTime = booking.start_time?.slice(0, 5);
+    const propertyName = booking.properties?.name || "Property";
+    const companyName = settings?.company_name || "Luxe Rentals";
+    const checkInTime = settings?.standard_check_in_time || "15:00";
+    const checkOutTime = settings?.standard_check_out_time || "11:00";
 
-    let formattedDate = booking.date || "";
-    if (formattedDate && formattedDate.includes("-")) {
-      const [y, m, d] = formattedDate.split("-");
-      if (y && m && d) formattedDate = `${m}-${d}-${y}`;
-    }
+    const checkInDateFormatted = format(parseISO(booking.check_in_date), 'EEEE, MMMM d, yyyy');
+    const checkOutDateFormatted = format(parseISO(booking.check_out_date), 'EEEE, MMMM d, yyyy');
+    const nights = differenceInDays(parseISO(booking.check_out_date), parseISO(booking.check_in_date));
 
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -114,16 +130,22 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Rivers End Events <riversendevents@pikeswaysolutions.com>",
+        from: `${companyName} <bookings@luxerentals.com>`,
         to: [booking.contact_email],
-        reply_to: "bookings@riversendevents.com",
-        subject: `Booking Confirmed - ${booking.event_types?.name || "Event"}`,
+        reply_to: "bookings@luxerentals.com",
+        subject: `Your Reservation is Confirmed - ${propertyName}`,
         template: {
           id: templateId,
           variables: {
-            EventType: booking.event_types?.name || "Event",
-            EventDate: formattedDate,
-            EventStart: startTime || "",
+            PropertyName: propertyName,
+            CheckInDate: checkInDateFormatted,
+            CheckOutDate: checkOutDateFormatted,
+            CheckInTime: formatTime(checkInTime),
+            CheckOutTime: formatTime(checkOutTime),
+            GuestCount: booking.guest_count.toString(),
+            Nights: nights.toString(),
+            ContactName: booking.contact_name,
+            TotalPrice: formatCurrency(booking.total_price),
           },
         },
       }),
