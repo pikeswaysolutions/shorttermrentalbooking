@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #3B82F6;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* Custom Scrollbar for React Quill if needed */
+.ql-editor {
+  min-height: 100px;
+  font-family: inherit;
+  font-size: 1rem;
+}
+.ql-container {
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  background-color: white;
+}
+.ql-toolbar {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  background-color: #f9fafb;
+}

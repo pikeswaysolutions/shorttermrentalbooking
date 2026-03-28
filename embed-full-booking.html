@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Widget Embed - Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f9fafb;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #111827;
+      margin-bottom: 20px;
+    }
+    .embed-info {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #e5e7eb;
+    }
+    .embed-info h2 {
+      margin-top: 0;
+      color: #374151;
+      font-size: 18px;
+    }
+    .embed-info p {
+      color: #6b7280;
+      line-height: 1.6;
+    }
+    .code-block {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin: 10px 0;
+    }
+    .widget-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 20px;
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #6b7280;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: #1d4ed8;
+      color: white;
+      border-color: #1d4ed8;
+    }
+    .tab:hover {
+      border-color: #1d4ed8;
+    }
+    .content {
+      display: none;
+    }
+    .content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎫 Event Booking System - Embed Codes</h1>
+    
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('booking')">Customer Booking Widget</div>
+      <div class="tab" onclick="switchTab('calendar')">Admin Calendar Widget</div>
+    </div>
+
+    <!-- Booking Widget Tab -->
+    <div id="booking-content" class="content active">
+      <div class="embed-info">
+        <h2>Customer Booking Widget</h2>
+        <p>This widget allows customers to browse event types and submit booking requests. Perfect for public-facing pages.</p>
+        
+        <div class="code-block">
+&lt;!-- Event Booking Widget --&gt;<br>
+&lt;div id="event-booking-widget"&gt;&lt;/div&gt;<br>
+&lt;script&gt;<br>
+&nbsp;&nbsp;(function() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const iframe = document.createElement('iframe');<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.src = window.location.origin + '/booking';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.width = '100%';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.height = '700px';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.border = 'none';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.borderRadius = '8px';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.overflow = 'hidden';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;document.getElementById('event-booking-widget').appendChild(iframe);<br>
+&nbsp;&nbsp;})();<br>
+&lt;/script&gt;
+        </div>
+
+        <h2 style="margin-top: 30px;">Customization Options</h2>
+        <p><strong>Height:</strong> Recommended minimum 700px to accommodate the booking wizard steps</p>
+        <p><strong>Responsive:</strong> Width is set to 100% for mobile compatibility</p>
+      </div>
+
+      <div class="widget-container">
+        <div id="event-booking-widget"></div>
+        <script>
+          (function() {
+            const iframe = document.createElement('iframe');
+            iframe.src = window.location.origin + '/booking';
+            iframe.style.width = '100%';
+            iframe.style.height = '700px';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '8px';
+            iframe.style.overflow = 'hidden';
+            document.getElementById('event-booking-widget').appendChild(iframe);
+          })();
+        </script>
+      </div>
+    </div>
+
+    <!-- Calendar Widget Tab -->
+    <div id="calendar-content" class="content">
+      <div class="embed-info">
+        <h2>Admin Calendar Widget</h2>
+        <p>This widget displays the full event calendar with booking management capabilities. Ideal for admin dashboards and internal tools.</p>
+        
+        <div class="code-block">
+&lt;!-- Event Calendar Widget --&gt;<br>
+&lt;div id="event-calendar-widget"&gt;&lt;/div&gt;<br>
+&lt;script&gt;<br>
+&nbsp;&nbsp;(function() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const iframe = document.createElement('iframe');<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.src = window.location.origin + '/admin/calendar';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.width = '100%';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.height = '900px';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.border = 'none';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.borderRadius = '8px';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.overflow = 'hidden';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;document.getElementById('event-calendar-widget').appendChild(iframe);<br>
+&nbsp;&nbsp;})();<br>
+&lt;/script&gt;
+        </div>
+
+        <h2 style="margin-top: 30px;">Features</h2>
+        <p>✅ View all bookings in a monthly calendar view</p>
+        <p>✅ Click events to view details, approve, decline, or edit</p>
+        <p>✅ Block dates or time slots directly from the calendar</p>
+        <p>✅ Color-coded status indicators (pending, confirmed, declined)</p>
+      </div>
+
+      <div class="widget-container">
+        <div id="event-calendar-widget-demo"></div>
+        <script>
+          (function() {
+            const iframe = document.createElement('iframe');
+            iframe.src = window.location.origin + '/admin/calendar';
+            iframe.style.width = '100%';
+            iframe.style.height = '900px';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '8px';
+            iframe.style.overflow = 'hidden';
+            document.getElementById('event-calendar-widget-demo').appendChild(iframe);
+          })();
+        </script>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      // Update tabs
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+      
+      // Activate selected
+      event.target.classList.add('active');
+      document.getElementById(tab + '-content').classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Calendar Embed - Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f9fafb;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #111827;
+      margin-bottom: 20px;
+    }
+    .embed-info {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #e5e7eb;
+    }
+    .embed-info h2 {
+      margin-top: 0;
+      color: #374151;
+      font-size: 18px;
+    }
+    .embed-info p {
+      color: #6b7280;
+      line-height: 1.6;
+    }
+    .code-block {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin: 10px 0;
+    }
+    .widget-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📅 Event Calendar Widget - Embed Code</h1>
+    
+    <div class="embed-info">
+      <h2>How to Embed the Calendar</h2>
+      <p>Copy and paste this code into your admin dashboard or any webpage where you want the calendar to appear:</p>
+      
+      <div class="code-block">
+&lt;!-- Event Calendar Widget --&gt;<br>
+&lt;div id="event-calendar-widget"&gt;&lt;/div&gt;<br>
+&lt;script&gt;<br>
+&nbsp;&nbsp;(function() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const iframe = document.createElement('iframe');<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.src = window.location.origin + '/admin/calendar';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.width = '100%';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.height = '800px';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.border = 'none';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.borderRadius = '8px';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.overflow = 'hidden';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;document.getElementById('event-calendar-widget').appendChild(iframe);<br>
+&nbsp;&nbsp;})();<br>
+&lt;/script&gt;
+      </div>
+
+      <h2 style="margin-top: 30px;">Customization Options</h2>
+      <p><strong>Height:</strong> Change <code>iframe.style.height</code> to adjust widget height (e.g., '1000px', '100vh')</p>
+      <p><strong>Width:</strong> Set to '100%' for responsive or specify exact pixels (e.g., '1200px')</p>
+      <p><strong>Border Radius:</strong> Adjust <code>iframe.style.borderRadius</code> for rounded corners</p>
+    </div>
+
+    <!-- Live Preview -->
+    <div class="widget-container">
+      <div id="event-calendar-widget"></div>
+      <script>
+        (function() {
+          const iframe = document.createElement('iframe');
+          iframe.src = window.location.origin + '/admin/calendar';
+          iframe.style.width = '100%';
+          iframe.style.height = '800px';
+          iframe.style.border = 'none';
+          iframe.style.borderRadius = '8px';
+          iframe.style.overflow = 'hidden';
+          document.getElementById('event-calendar-widget').appendChild(iframe);
+        })();
+      </script>
+    </div>
+  </div>
+</body>
+</html>
