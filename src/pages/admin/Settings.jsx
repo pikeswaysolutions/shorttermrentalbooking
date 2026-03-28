@@ -272,7 +272,7 @@ const Settings = () => {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold">
-                <SafeIcon icon={FiIcons.FiLightbulb} />
+                <SafeIcon icon={FiIcons.FiInfo} />
               </div>
               <h4 className="font-bold text-xl text-gray-900">Pro Tips</h4>
             </div>
