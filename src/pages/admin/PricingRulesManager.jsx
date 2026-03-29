@@ -15,14 +15,14 @@ const PricingRulesManager = () => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    property_id: null,
-    rule_type: 'day_of_week',
+    propertyId: null,
+    ruleType: 'day_of_week',
     days: [],
-    day_of_week: null,
-    specific_date: '',
-    start_date: '',
-    end_date: '',
-    nightly_rate: 100,
+    dayOfWeek: null,
+    specificDate: '',
+    startDate: '',
+    endDate: '',
+    nightlyRate: 100,
     priority: 0
   });
 
@@ -30,14 +30,14 @@ const PricingRulesManager = () => {
     setEditingId(rule.id);
     setFormData({
       name: rule.name,
-      property_id: rule.property_id,
-      rule_type: rule.rule_type,
+      propertyId: rule.propertyId,
+      ruleType: rule.ruleType,
       days: rule.days || [],
-      day_of_week: rule.day_of_week,
-      specific_date: rule.specific_date || '',
-      start_date: rule.start_date || '',
-      end_date: rule.end_date || '',
-      nightly_rate: rule.nightly_rate,
+      dayOfWeek: rule.dayOfWeek,
+      specificDate: rule.specificDate || '',
+      startDate: rule.startDate || '',
+      endDate: rule.endDate || '',
+      nightlyRate: rule.nightlyRate,
       priority: rule.priority || 0
     });
     setIsAdding(true);
@@ -49,24 +49,24 @@ const PricingRulesManager = () => {
       return;
     }
 
-    if (formData.rule_type === 'day_of_week' && formData.days.length === 0) {
+    if (formData.ruleType === 'day_of_week' && formData.days.length === 0) {
       alert('Please select at least one day of the week');
       return;
     }
 
-    if (formData.rule_type === 'date_override' && !formData.specific_date) {
+    if (formData.ruleType === 'date_override' && !formData.specificDate) {
       alert('Please select a specific date');
       return;
     }
 
-    if (formData.rule_type === 'date_range' && (!formData.start_date || !formData.end_date)) {
+    if (formData.ruleType === 'date_range' && (!formData.startDate || !formData.endDate)) {
       alert('Please select both start and end dates');
       return;
     }
 
     const ruleData = {
       ...formData,
-      property_id: formData.property_id === '' ? null : formData.property_id
+      propertyId: formData.propertyId === '' ? null : formData.propertyId
     };
 
     setSaving(true);
@@ -89,14 +89,14 @@ const PricingRulesManager = () => {
     setEditingId(null);
     setFormData({
       name: '',
-      property_id: null,
-      rule_type: 'day_of_week',
+      propertyId: null,
+      ruleType: 'day_of_week',
       days: [],
-      day_of_week: null,
-      specific_date: '',
-      start_date: '',
-      end_date: '',
-      nightly_rate: 100,
+      dayOfWeek: null,
+      specificDate: '',
+      startDate: '',
+      endDate: '',
+      nightlyRate: 100,
       priority: 0
     });
   };
@@ -152,8 +152,8 @@ const PricingRulesManager = () => {
               <label className="block text-sm font-bold text-gray-700 mb-1">Applies To</label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                value={formData.property_id || ''}
-                onChange={(e) => setFormData({ ...formData, property_id: e.target.value || null })}
+                value={formData.propertyId || ''}
+                onChange={(e) => setFormData({ ...formData, propertyId: e.target.value || null })}
               >
                 <option value="">All Properties</option>
                 {properties.map(prop => (
@@ -167,10 +167,10 @@ const PricingRulesManager = () => {
               <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, rule_type: 'day_of_week' })}
+                  onClick={() => setFormData({ ...formData, ruleType: 'day_of_week' })}
                   className={cn(
                     "p-3 rounded-lg border-2 font-bold text-sm transition-all",
-                    formData.rule_type === 'day_of_week'
+                    formData.ruleType === 'day_of_week'
                       ? "border-primary bg-blue-50 text-primary"
                       : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
                   )}
@@ -179,10 +179,10 @@ const PricingRulesManager = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, rule_type: 'date_override' })}
+                  onClick={() => setFormData({ ...formData, ruleType: 'date_override' })}
                   className={cn(
                     "p-3 rounded-lg border-2 font-bold text-sm transition-all",
-                    formData.rule_type === 'date_override'
+                    formData.ruleType === 'date_override'
                       ? "border-primary bg-blue-50 text-primary"
                       : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
                   )}
@@ -191,10 +191,10 @@ const PricingRulesManager = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, rule_type: 'date_range' })}
+                  onClick={() => setFormData({ ...formData, ruleType: 'date_range' })}
                   className={cn(
                     "p-3 rounded-lg border-2 font-bold text-sm transition-all",
-                    formData.rule_type === 'date_range'
+                    formData.ruleType === 'date_range'
                       ? "border-primary bg-blue-50 text-primary"
                       : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
                   )}
@@ -204,7 +204,7 @@ const PricingRulesManager = () => {
               </div>
             </div>
 
-            {formData.rule_type === 'day_of_week' && (
+            {formData.ruleType === 'day_of_week' && (
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Days of Week *</label>
                 <div className="flex flex-wrap gap-2">
@@ -227,27 +227,27 @@ const PricingRulesManager = () => {
               </div>
             )}
 
-            {formData.rule_type === 'date_override' && (
+            {formData.ruleType === 'date_override' && (
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Specific Date *</label>
                 <input
                   type="date"
                   className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                  value={formData.specific_date}
-                  onChange={(e) => setFormData({ ...formData, specific_date: e.target.value })}
+                  value={formData.specificDate}
+                  onChange={(e) => setFormData({ ...formData, specificDate: e.target.value })}
                 />
               </div>
             )}
 
-            {formData.rule_type === 'date_range' && (
+            {formData.ruleType === 'date_range' && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Start Date *</label>
                   <input
                     type="date"
                     className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   />
                 </div>
                 <div>
@@ -255,8 +255,8 @@ const PricingRulesManager = () => {
                   <input
                     type="date"
                     className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                   />
                 </div>
               </div>
@@ -268,8 +268,8 @@ const PricingRulesManager = () => {
                 <input
                   type="number"
                   className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                  value={formData.nightly_rate}
-                  onChange={(e) => setFormData({ ...formData, nightly_rate: parseFloat(e.target.value) })}
+                  value={formData.nightlyRate}
+                  onChange={(e) => setFormData({ ...formData, nightlyRate: parseFloat(e.target.value) })}
                   min="0"
                   step="10"
                 />
@@ -304,9 +304,9 @@ const PricingRulesManager = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <h3 className="font-bold text-lg text-gray-900">{rule.name}</h3>
-                {rule.property_id && (
+                {rule.propertyId && (
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">
-                    {properties.find(p => p.id === rule.property_id)?.name || 'Unknown Property'}
+                    {properties.find(p => p.id === rule.propertyId)?.name || 'Unknown Property'}
                   </span>
                 )}
                 <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-bold">
@@ -317,33 +317,33 @@ const PricingRulesManager = () => {
                 <p>
                   <SafeIcon icon={FiIcons.FiTag} className="inline mr-1" />
                   <span className="font-semibold">
-                    {rule.rule_type === 'day_of_week' && 'Day of Week'}
-                    {rule.rule_type === 'date_override' && 'Specific Date'}
-                    {rule.rule_type === 'date_range' && 'Date Range'}
+                    {rule.ruleType === 'day_of_week' && 'Day of Week'}
+                    {rule.ruleType === 'date_override' && 'Specific Date'}
+                    {rule.ruleType === 'date_range' && 'Date Range'}
                   </span>
                 </p>
-                {rule.rule_type === 'day_of_week' && rule.days && (
+                {rule.ruleType === 'day_of_week' && rule.days && (
                   <p>
                     <SafeIcon icon={FiIcons.FiCalendar} className="inline mr-1" />
                     {rule.days.map(d => DAYS[d].slice(0, 3)).join(', ')}
                   </p>
                 )}
-                {rule.rule_type === 'date_override' && rule.specific_date && (
+                {rule.ruleType === 'date_override' && rule.specificDate && (
                   <p>
                     <SafeIcon icon={FiIcons.FiCalendar} className="inline mr-1" />
-                    {format(new Date(rule.specific_date), 'MMM d, yyyy')}
+                    {format(new Date(rule.specificDate), 'MMM d, yyyy')}
                   </p>
                 )}
-                {rule.rule_type === 'date_range' && rule.start_date && rule.end_date && (
+                {rule.ruleType === 'date_range' && rule.startDate && rule.endDate && (
                   <p>
                     <SafeIcon icon={FiIcons.FiCalendar} className="inline mr-1" />
-                    {format(new Date(rule.start_date), 'MMM d, yyyy')} - {format(new Date(rule.end_date), 'MMM d, yyyy')}
+                    {format(new Date(rule.startDate), 'MMM d, yyyy')} - {format(new Date(rule.endDate), 'MMM d, yyyy')}
                   </p>
                 )}
               </div>
             </div>
             <div className="text-right flex items-center gap-4 ml-4">
-              <span className="text-xl font-bold text-primary">{formatCurrency(rule.nightly_rate)}/night</span>
+              <span className="text-xl font-bold text-primary">{formatCurrency(rule.nightlyRate)}/night</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleEdit(rule)}>
                   <SafeIcon icon={FiIcons.FiEdit2} />
