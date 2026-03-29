@@ -142,15 +142,20 @@ const PropertiesManager = () => {
     e.preventDefault();
     const filteredImportUrls = (formData.icalImportUrls || []).filter(url => url && url.trim());
     const dataToSave = {
-      ...formData,
-      base_nightly_rate: Number(formData.base_nightly_rate),
-      cleaning_fee: Number(formData.cleaning_fee),
-      min_nights: Number(formData.min_nights),
-      max_guests: Number(formData.max_guests),
+      name: formData.name,
+      description: formData.description,
+      baseNightlyRate: Number(formData.base_nightly_rate),
+      cleaningFee: Number(formData.cleaning_fee),
+      minNights: Number(formData.min_nights),
+      maxGuests: Number(formData.max_guests),
+      imageUrl: formData.image_url,
+      isActive: formData.is_active,
+      themeColor: formData.theme_color,
       emailTemplates: {
         ...formData.emailTemplates,
         followupDaysBefore: Number(formData.emailTemplates.followupDaysBefore)
       },
+      confirmationPage: formData.confirmationPage,
       icalImportUrls: filteredImportUrls
     };
 
