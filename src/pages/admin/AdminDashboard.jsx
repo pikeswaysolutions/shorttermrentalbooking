@@ -71,7 +71,7 @@ const AdminDashboard = () => {
                 <div>
                   <h4 className="font-medium text-gray-900">{booking.property?.name}</h4>
                   <p className="text-sm text-gray-500">
-                    {format(new Date(booking.check_in_date || booking.date), 'MMM d')} • {booking.contactName || booking.contact_name}
+                    {booking.checkInDate ? format(new Date(booking.checkInDate), 'MMM d') : 'N/A'} • {booking.contactName}
                   </p>
                 </div>
               </div>
