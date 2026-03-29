@@ -74,8 +74,8 @@ const AdminCalendar = () => {
 
           const dayBookings = bookings.filter(b => {
             try {
-              const checkIn = typeof b.check_in_date === 'string' ? parseISO(b.check_in_date) : b.check_in_date;
-              const checkOut = typeof b.check_out_date === 'string' ? parseISO(b.check_out_date) : b.check_out_date;
+              const checkIn = parseISO(b.checkInDate);
+              const checkOut = parseISO(b.checkOutDate);
               return isWithinInterval(date, { start: checkIn, end: checkOut });
             } catch (e) {
               return false;
@@ -149,9 +149,9 @@ const AdminCalendar = () => {
     setSelectedEvent(event);
     setEditFormData({
       ...event,
-      property: event.property?.id || event.property,
-      check_in_date: typeof event.check_in_date === 'string' ? event.check_in_date : format(event.check_in_date, 'yyyy-MM-dd'),
-      check_out_date: typeof event.check_out_date === 'string' ? event.check_out_date : format(event.check_out_date, 'yyyy-MM-dd')
+      property: event.property?.id || event.propertyId,
+      checkInDate: event.checkInDate,
+      checkOutDate: event.checkOutDate,
     });
     setIsEditingEvent(false);
     setShowEventModal(true);
@@ -166,8 +166,8 @@ const AdminCalendar = () => {
 
   const handleSaveEventChanges = () => {
     if (selectedEvent) {
-      const checkIn = new Date(editFormData.check_in_date);
-      const checkOut = new Date(editFormData.check_out_date);
+      const checkIn = new Date(editFormData.checkInDate);
+      const checkOut = new Date(editFormData.checkOutDate);
 
       if (checkOut <= checkIn) {
         alert('Error: Check-out date must be after check-in date.');
@@ -177,8 +177,16 @@ const AdminCalendar = () => {
       const propertyObj = properties.find(p => p.id === editFormData.property) || editFormData.property;
       updateBookingDetails({
         ...selectedEvent,
-        ...editFormData,
-        property: propertyObj
+        contactName: editFormData.contactName,
+        contactEmail: editFormData.contactEmail,
+        contactPhone: editFormData.contactPhone,
+        guestCount: editFormData.guestCount,
+        descriptionOfUse: editFormData.descriptionOfUse,
+        notes: editFormData.notes,
+        checkInDate: editFormData.checkInDate,
+        checkOutDate: editFormData.checkOutDate,
+        propertyId: typeof editFormData.property === 'string' ? editFormData.property : editFormData.property?.id,
+        property: propertyObj,
       });
       setIsEditingEvent(false);
       setShowEventModal(false);
@@ -188,8 +196,8 @@ const AdminCalendar = () => {
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const dayBookings = bookings.filter(b => {
     try {
-      const checkIn = typeof b.check_in_date === 'string' ? parseISO(b.check_in_date) : b.check_in_date;
-      const checkOut = typeof b.check_out_date === 'string' ? parseISO(b.check_out_date) : b.check_out_date;
+      const checkIn = parseISO(b.checkInDate);
+      const checkOut = parseISO(b.checkOutDate);
       return isWithinInterval(selectedDate, { start: checkIn, end: checkOut });
     } catch (e) {
       return false;
@@ -268,8 +276,8 @@ const AdminCalendar = () => {
 
               {dayBookings.map(b => {
                 const nights = differenceInDays(
-                  typeof b.check_out_date === 'string' ? parseISO(b.check_out_date) : b.check_out_date,
-                  typeof b.check_in_date === 'string' ? parseISO(b.check_in_date) : b.check_in_date
+                  parseISO(b.checkOutDate),
+                  parseISO(b.checkInDate)
                 );
 
                 return (
@@ -390,7 +398,7 @@ const AdminCalendar = () => {
                     <span className="font-bold uppercase tracking-wide text-sm">{selectedEvent.status}</span>
                   </div>
                   <span className="text-xs opacity-75 font-semibold">
-                    Requested on {format(new Date(selectedEvent.createdAt || selectedEvent.created_at), 'MMM d, yyyy')}
+                    Requested on {format(new Date(selectedEvent.createdAt), 'MMM d, yyyy')}
                   </span>
                 </div>
               )}
@@ -407,11 +415,11 @@ const AdminCalendar = () => {
                         <input
                           type="text"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={editFormData.contactName || editFormData.contact_name}
-                          onChange={(e) => setEditFormData({...editFormData, contact_name: e.target.value, contactName: e.target.value})}
+                          value={editFormData.contactName}
+                          onChange={(e) => setEditFormData({...editFormData, contactName: e.target.value})}
                         />
                       ) : (
-                        <p className="text-lg text-gray-900">{selectedEvent.contactName || selectedEvent.contact_name}</p>
+                        <p className="text-lg text-gray-900">{selectedEvent.contactName}</p>
                       )}
                     </div>
                     <div>
@@ -420,11 +428,11 @@ const AdminCalendar = () => {
                         <input
                           type="text"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={editFormData.contactPhone || editFormData.contact_phone}
-                          onChange={(e) => setEditFormData({...editFormData, contact_phone: e.target.value, contactPhone: e.target.value})}
+                          value={editFormData.contactPhone}
+                          onChange={(e) => setEditFormData({...editFormData, contactPhone: e.target.value})}
                         />
                       ) : (
-                        <p className="text-lg text-gray-900">{selectedEvent.contactPhone || selectedEvent.contact_phone}</p>
+                        <p className="text-lg text-gray-900">{selectedEvent.contactPhone}</p>
                       )}
                     </div>
                     <div className="md:col-span-2">
@@ -433,13 +441,13 @@ const AdminCalendar = () => {
                         <input
                           type="email"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={editFormData.contactEmail || editFormData.contact_email}
-                          onChange={(e) => setEditFormData({...editFormData, contact_email: e.target.value, contactEmail: e.target.value})}
+                          value={editFormData.contactEmail}
+                          onChange={(e) => setEditFormData({...editFormData, contactEmail: e.target.value})}
                         />
                       ) : (
                         <p className="text-lg text-gray-900 flex items-center gap-2">
-                          {selectedEvent.contactEmail || selectedEvent.contact_email}
-                          <a href={`mailto:${selectedEvent.contactEmail || selectedEvent.contact_email}`} className="text-primary hover:text-blue-700">
+                          {selectedEvent.contactEmail}
+                          <a href={`mailto:${selectedEvent.contactEmail}`} className="text-primary hover:text-blue-700">
                             <SafeIcon icon={FiIcons.FiMail} />
                           </a>
                         </p>
@@ -476,12 +484,12 @@ const AdminCalendar = () => {
                         <input
                           type="date"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={editFormData.check_in_date}
-                          onChange={(e) => setEditFormData({...editFormData, check_in_date: e.target.value})}
+                          value={editFormData.checkInDate}
+                          onChange={(e) => setEditFormData({...editFormData, checkInDate: e.target.value})}
                         />
                       ) : (
                         <p className="text-lg text-gray-900">
-                          {format(typeof selectedEvent.check_in_date === 'string' ? parseISO(selectedEvent.check_in_date) : selectedEvent.check_in_date, 'MMMM do, yyyy')}
+                          {format(parseISO(selectedEvent.checkInDate), 'MMMM do, yyyy')}
                         </p>
                       )}
                     </div>
@@ -491,12 +499,12 @@ const AdminCalendar = () => {
                         <input
                           type="date"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={editFormData.check_out_date}
-                          onChange={(e) => setEditFormData({...editFormData, check_out_date: e.target.value})}
+                          value={editFormData.checkOutDate}
+                          onChange={(e) => setEditFormData({...editFormData, checkOutDate: e.target.value})}
                         />
                       ) : (
                         <p className="text-lg text-gray-900">
-                          {format(typeof selectedEvent.check_out_date === 'string' ? parseISO(selectedEvent.check_out_date) : selectedEvent.check_out_date, 'MMMM do, yyyy')}
+                          {format(parseISO(selectedEvent.checkOutDate), 'MMMM do, yyyy')}
                         </p>
                       )}
                     </div>
@@ -507,11 +515,11 @@ const AdminCalendar = () => {
                         <input
                           type="number"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={editFormData.guestCount || editFormData.guest_count}
-                          onChange={(e) => setEditFormData({...editFormData, guest_count: parseInt(e.target.value), guestCount: parseInt(e.target.value)})}
+                          value={editFormData.guestCount}
+                          onChange={(e) => setEditFormData({...editFormData, guestCount: parseInt(e.target.value)})}
                         />
                       ) : (
-                        <p className="text-lg text-gray-900">{selectedEvent.guestCount || selectedEvent.guest_count} guests</p>
+                        <p className="text-lg text-gray-900">{selectedEvent.guestCount} guests</p>
                       )}
                     </div>
 
@@ -519,8 +527,8 @@ const AdminCalendar = () => {
                       <label className="block text-sm font-bold text-gray-700 mb-1">Nights</label>
                       <p className="text-lg text-gray-900">
                         {differenceInDays(
-                          typeof selectedEvent.check_out_date === 'string' ? parseISO(selectedEvent.check_out_date) : selectedEvent.check_out_date,
-                          typeof selectedEvent.check_in_date === 'string' ? parseISO(selectedEvent.check_in_date) : selectedEvent.check_in_date
+                          parseISO(selectedEvent.checkOutDate),
+                          parseISO(selectedEvent.checkInDate)
                         )} nights
                       </p>
                     </div>
@@ -530,12 +538,12 @@ const AdminCalendar = () => {
                        {isEditingEvent ? (
                          <textarea
                            className="w-full p-2 border border-gray-300 rounded-lg h-24"
-                           value={editFormData.descriptionOfUse || editFormData.description_of_use}
-                           onChange={(e) => setEditFormData({...editFormData, description_of_use: e.target.value, descriptionOfUse: e.target.value})}
+                           value={editFormData.descriptionOfUse}
+                           onChange={(e) => setEditFormData({...editFormData, descriptionOfUse: e.target.value})}
                          />
                        ) : (
                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
-                           "{selectedEvent.descriptionOfUse || selectedEvent.description_of_use}"
+                           "{selectedEvent.descriptionOfUse}"
                          </p>
                        )}
                     </div>
@@ -544,7 +552,7 @@ const AdminCalendar = () => {
                       <div className="md:col-span-2 mt-2">
                         <div className="flex justify-between items-center border-t border-gray-200 pt-3">
                            <span className="font-bold text-lg text-gray-900">Total Price</span>
-                           <span className="font-bold text-2xl text-primary">{formatCurrency(selectedEvent.totalPrice || selectedEvent.total_price)}</span>
+                           <span className="font-bold text-2xl text-primary">{formatCurrency(selectedEvent.totalPrice)}</span>
                         </div>
                       </div>
                     )}

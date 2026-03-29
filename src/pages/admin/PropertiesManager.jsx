@@ -74,13 +74,13 @@ const PropertiesManager = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    base_nightly_rate: 0,
-    cleaning_fee: 0,
-    min_nights: 1,
-    max_guests: 4,
-    image_url: '',
-    is_active: true,
-    theme_color: '#3B82F6',
+    baseNightlyRate: 0,
+    cleaningFee: 0,
+    minNights: 1,
+    maxGuests: 4,
+    imageUrl: '',
+    isActive: true,
+    themeColor: '#3B82F6',
     emailTemplates: {
       confirmationTemplateId: '',
       followupTemplateId: '',
@@ -116,13 +116,13 @@ const PropertiesManager = () => {
       setFormData({
         name: '',
         description: '',
-        base_nightly_rate: 0,
-        cleaning_fee: 0,
-        min_nights: 1,
-        max_guests: 4,
-        image_url: '',
-        is_active: true,
-        theme_color: '#3B82F6',
+        baseNightlyRate: 0,
+        cleaningFee: 0,
+        minNights: 1,
+        maxGuests: 4,
+        imageUrl: '',
+        isActive: true,
+        themeColor: '#3B82F6',
         emailTemplates: {
           confirmationTemplateId: '',
           followupTemplateId: '',
@@ -144,13 +144,13 @@ const PropertiesManager = () => {
     const dataToSave = {
       name: formData.name,
       description: formData.description,
-      baseNightlyRate: Number(formData.base_nightly_rate),
-      cleaningFee: Number(formData.cleaning_fee),
-      minNights: Number(formData.min_nights),
-      maxGuests: Number(formData.max_guests),
-      imageUrl: formData.image_url,
-      isActive: formData.is_active,
-      themeColor: formData.theme_color,
+      baseNightlyRate: Number(formData.baseNightlyRate),
+      cleaningFee: Number(formData.cleaningFee),
+      minNights: Number(formData.minNights),
+      maxGuests: Number(formData.maxGuests),
+      imageUrl: formData.imageUrl,
+      isActive: formData.isActive,
+      themeColor: formData.themeColor,
       emailTemplates: {
         ...formData.emailTemplates,
         followupDaysBefore: Number(formData.emailTemplates.followupDaysBefore)
@@ -224,35 +224,35 @@ const PropertiesManager = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {properties.map((property) => (
           <div key={property.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group">
-            <div className="h-2" style={{ backgroundColor: property.theme_color }} />
-            {property.image_url && (
+            <div className="h-2" style={{ backgroundColor: property.themeColor }} />
+            {property.imageUrl && (
               <div className="h-40 overflow-hidden">
-                <img src={property.image_url} alt={property.name} className="w-full h-full object-cover" />
+                <img src={property.imageUrl} alt={property.name} className="w-full h-full object-cover" />
               </div>
             )}
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-bold text-gray-900">{property.name}</h3>
-                <div className={cn("w-3 h-3 rounded-full", property.is_active ? "bg-green-500" : "bg-gray-300")} />
+                <div className={cn("w-3 h-3 rounded-full", property.isActive ? "bg-green-500" : "bg-gray-300")} />
               </div>
               <p className="text-gray-600 text-sm mb-6 line-clamp-2 h-10">{property.description}</p>
 
               <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <span className="block text-gray-500 text-xs mb-1">Base Nightly Rate</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(property.base_nightly_rate)}/night</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(property.baseNightlyRate)}/night</span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <span className="block text-gray-500 text-xs mb-1">Cleaning Fee</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(property.cleaning_fee)}</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(property.cleaningFee)}</span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <span className="block text-gray-500 text-xs mb-1">Min Stay</span>
-                  <span className="font-bold text-gray-900">{property.min_nights} {property.min_nights === 1 ? 'Night' : 'Nights'}</span>
+                  <span className="font-bold text-gray-900">{property.minNights} {property.minNights === 1 ? 'Night' : 'Nights'}</span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <span className="block text-gray-500 text-xs mb-1">Max Guests</span>
-                  <span className="font-bold text-gray-900">{property.max_guests}</span>
+                  <span className="font-bold text-gray-900">{property.maxGuests}</span>
                 </div>
               </div>
 
@@ -339,8 +339,8 @@ const PropertiesManager = () => {
                       <input
                         type="text"
                         className="w-full p-2 border border-gray-300 rounded-lg"
-                        value={formData.image_url}
-                        onChange={e => setFormData({...formData, image_url: e.target.value})}
+                        value={formData.imageUrl}
+                        onChange={e => setFormData({...formData, imageUrl: e.target.value})}
                         placeholder="https://example.com/image.jpg"
                       />
                     </div>
@@ -352,8 +352,8 @@ const PropertiesManager = () => {
                           required
                           min="0"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={formData.base_nightly_rate}
-                          onChange={e => setFormData({...formData, base_nightly_rate: e.target.value})}
+                          value={formData.baseNightlyRate}
+                          onChange={e => setFormData({...formData, baseNightlyRate: e.target.value})}
                         />
                       </div>
                       <div>
@@ -363,8 +363,8 @@ const PropertiesManager = () => {
                           required
                           min="0"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={formData.cleaning_fee}
-                          onChange={e => setFormData({...formData, cleaning_fee: e.target.value})}
+                          value={formData.cleaningFee}
+                          onChange={e => setFormData({...formData, cleaningFee: e.target.value})}
                         />
                       </div>
                     </div>
@@ -376,8 +376,8 @@ const PropertiesManager = () => {
                           required
                           min="1"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={formData.min_nights}
-                          onChange={e => setFormData({...formData, min_nights: e.target.value})}
+                          value={formData.minNights}
+                          onChange={e => setFormData({...formData, minNights: e.target.value})}
                         />
                       </div>
                       <div>
@@ -387,8 +387,8 @@ const PropertiesManager = () => {
                           required
                           min="1"
                           className="w-full p-2 border border-gray-300 rounded-lg"
-                          value={formData.max_guests}
-                          onChange={e => setFormData({...formData, max_guests: e.target.value})}
+                          value={formData.maxGuests}
+                          onChange={e => setFormData({...formData, maxGuests: e.target.value})}
                         />
                       </div>
                     </div>
@@ -398,14 +398,14 @@ const PropertiesManager = () => {
                         <input
                           type="color"
                           className="h-10 w-10 rounded cursor-pointer border border-gray-300 p-0.5"
-                          value={formData.theme_color}
-                          onChange={e => setFormData({...formData, theme_color: e.target.value})}
+                          value={formData.themeColor}
+                          onChange={e => setFormData({...formData, themeColor: e.target.value})}
                         />
                         <input
                           type="text"
                           className="flex-1 p-2 border border-gray-300 rounded-lg uppercase"
-                          value={formData.theme_color}
-                          onChange={e => setFormData({...formData, theme_color: e.target.value})}
+                          value={formData.themeColor}
+                          onChange={e => setFormData({...formData, themeColor: e.target.value})}
                         />
                       </div>
                     </div>
@@ -485,8 +485,8 @@ const PropertiesManager = () => {
                          type="checkbox"
                          id="isActive"
                          className="w-4 h-4 rounded text-primary focus:ring-primary"
-                         checked={formData.is_active}
-                         onChange={e => setFormData({...formData, is_active: e.target.checked})}
+                         checked={formData.isActive}
+                         onChange={e => setFormData({...formData, isActive: e.target.checked})}
                        />
                        <label htmlFor="isActive" className="text-sm font-bold text-gray-700">Active (visible to customers)</label>
                     </div>

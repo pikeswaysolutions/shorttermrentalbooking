@@ -18,7 +18,7 @@ const BookingsList = () => {
   const sortedBookings = [...bookings].sort((a, b) => {
     if (a.status === 'pending' && b.status !== 'pending') return -1;
     if (a.status !== 'pending' && b.status === 'pending') return 1;
-    return new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at);
+    return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
   const filteredBookings = filter === 'all'
@@ -51,11 +51,11 @@ const BookingsList = () => {
       const propertyObj = properties.find(p => p.id === editFormData.property) || editFormData.property;
       await updateBookingDetails({
         ...editingBooking,
-        contactName: editFormData.contactName || editFormData.contact_name,
-        contactEmail: editFormData.contactEmail || editFormData.contact_email,
-        contactPhone: editFormData.contactPhone || editFormData.contact_phone,
-        guestCount: editFormData.guestCount || editFormData.guest_count,
-        descriptionOfUse: editFormData.descriptionOfUse || editFormData.description_of_use,
+        contactName: editFormData.contactName,
+        contactEmail: editFormData.contactEmail,
+        contactPhone: editFormData.contactPhone,
+        guestCount: editFormData.guestCount,
+        descriptionOfUse: editFormData.descriptionOfUse,
         notes: editFormData.notes,
         checkInDate: editFormData.check_in_date,
         checkOutDate: editFormData.check_out_date,
@@ -178,7 +178,7 @@ const BookingsList = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <SafeIcon icon={FiIcons.FiUsers} className="text-gray-400" />
-                          <span>{booking.guestCount || booking.guest_count} guests</span>
+                          <span>{booking.guestCount} guests</span>
                         </div>
                       </div>
 
@@ -187,13 +187,13 @@ const BookingsList = () => {
                         <div className="grid md:grid-cols-2 gap-4 text-sm">
                            <div>
                              <span className="text-gray-500 block text-xs">Contact</span>
-                             <span className="font-semibold text-gray-900">{booking.contactName || booking.contact_name}</span>
-                             <div className="text-gray-600 text-xs">{booking.contactPhone || booking.contact_phone}</div>
-                             <div className="text-gray-600 text-xs">{booking.contactEmail || booking.contact_email}</div>
+                             <span className="font-semibold text-gray-900">{booking.contactName}</span>
+                             <div className="text-gray-600 text-xs">{booking.contactPhone}</div>
+                             <div className="text-gray-600 text-xs">{booking.contactEmail}</div>
                            </div>
                            <div>
                              <span className="text-gray-500 block text-xs">Use Description</span>
-                             <p className="text-gray-700 italic">"{booking.descriptionOfUse || booking.description_of_use}"</p>
+                             <p className="text-gray-700 italic">"{booking.descriptionOfUse}"</p>
                            </div>
                            {booking.selectedAddOns && booking.selectedAddOns.length > 0 && (
                              <div className="md:col-span-2 border-t border-gray-200 pt-2 mt-1">
@@ -209,7 +209,7 @@ const BookingsList = () => {
                            )}
                         </div>
                         <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
-                          <span className="font-bold text-gray-900">Total: {formatCurrency(booking.totalPrice || booking.total_price)}</span>
+                          <span className="font-bold text-gray-900">Total: {formatCurrency(booking.totalPrice)}</span>
                         </div>
                       </div>
                     </div>
@@ -298,8 +298,8 @@ const BookingsList = () => {
                 <input
                   type="text"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.contactName || editFormData.contact_name}
-                  onChange={(e) => setEditFormData({...editFormData, contact_name: e.target.value, contactName: e.target.value})}
+                  value={editFormData.contactName || ''}
+                  onChange={(e) => setEditFormData({...editFormData, contactName: e.target.value})}
                 />
               </div>
               <div>
@@ -307,8 +307,8 @@ const BookingsList = () => {
                 <input
                   type="text"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.contactPhone || editFormData.contact_phone}
-                  onChange={(e) => setEditFormData({...editFormData, contact_phone: e.target.value, contactPhone: e.target.value})}
+                  value={editFormData.contactPhone || ''}
+                  onChange={(e) => setEditFormData({...editFormData, contactPhone: e.target.value})}
                 />
               </div>
               <div className="md:col-span-2">
@@ -316,8 +316,8 @@ const BookingsList = () => {
                 <input
                   type="email"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.contactEmail || editFormData.contact_email}
-                  onChange={(e) => setEditFormData({...editFormData, contact_email: e.target.value, contactEmail: e.target.value})}
+                  value={editFormData.contactEmail || ''}
+                  onChange={(e) => setEditFormData({...editFormData, contactEmail: e.target.value})}
                 />
               </div>
               <div className="md:col-span-2">
@@ -325,8 +325,8 @@ const BookingsList = () => {
                 <input
                   type="number"
                   className="w-full p-2 border border-gray-300 rounded-lg"
-                  value={editFormData.guestCount || editFormData.guest_count}
-                  onChange={(e) => setEditFormData({...editFormData, guest_count: parseInt(e.target.value), guestCount: parseInt(e.target.value)})}
+                  value={editFormData.guestCount || 1}
+                  onChange={(e) => setEditFormData({...editFormData, guestCount: parseInt(e.target.value)})}
                 />
               </div>
 
@@ -375,8 +375,8 @@ const BookingsList = () => {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Description of Use</label>
                 <textarea
                   className="w-full p-2 border border-gray-300 rounded-lg h-24"
-                  value={editFormData.descriptionOfUse || editFormData.description_of_use}
-                  onChange={(e) => setEditFormData({...editFormData, description_of_use: e.target.value, descriptionOfUse: e.target.value})}
+                  value={editFormData.descriptionOfUse || ''}
+                  onChange={(e) => setEditFormData({...editFormData, descriptionOfUse: e.target.value})}
                 />
               </div>
             </div>
