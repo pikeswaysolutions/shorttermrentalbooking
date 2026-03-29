@@ -30,8 +30,8 @@ const BookingsList = () => {
     setEditFormData({
       ...booking,
       property: booking.property?.id || booking.property,
-      check_in_date: typeof booking.check_in_date === 'string' ? booking.check_in_date : format(booking.check_in_date, 'yyyy-MM-dd'),
-      check_out_date: typeof booking.check_out_date === 'string' ? booking.check_out_date : format(booking.check_out_date, 'yyyy-MM-dd')
+      check_in_date: typeof booking.checkInDate === 'string' ? booking.checkInDate : format(booking.checkInDate, 'yyyy-MM-dd'),
+      check_out_date: typeof booking.checkOutDate === 'string' ? booking.checkOutDate : format(booking.checkOutDate, 'yyyy-MM-dd')
     });
     setShowEditModal(true);
   };
@@ -51,9 +51,16 @@ const BookingsList = () => {
       const propertyObj = properties.find(p => p.id === editFormData.property) || editFormData.property;
       await updateBookingDetails({
         ...editingBooking,
-        ...editFormData,
+        contactName: editFormData.contactName || editFormData.contact_name,
+        contactEmail: editFormData.contactEmail || editFormData.contact_email,
+        contactPhone: editFormData.contactPhone || editFormData.contact_phone,
+        guestCount: editFormData.guestCount || editFormData.guest_count,
+        descriptionOfUse: editFormData.descriptionOfUse || editFormData.description_of_use,
+        notes: editFormData.notes,
+        checkInDate: editFormData.check_in_date,
+        checkOutDate: editFormData.check_out_date,
+        propertyId: typeof editFormData.property === 'string' ? editFormData.property : editFormData.property?.id,
         property: propertyObj,
-        property_id: typeof editFormData.property === 'string' ? editFormData.property : editFormData.property?.id,
       });
       setShowEditModal(false);
       setEditingBooking(null);
@@ -140,8 +147,8 @@ const BookingsList = () => {
           </div>
         ) : (
           filteredBookings.map(booking => {
-            const checkInDate = typeof booking.check_in_date === 'string' ? parseISO(booking.check_in_date) : booking.check_in_date;
-            const checkOutDate = typeof booking.check_out_date === 'string' ? parseISO(booking.check_out_date) : booking.check_out_date;
+            const checkInDate = typeof booking.checkInDate === 'string' ? parseISO(booking.checkInDate) : booking.checkInDate;
+            const checkOutDate = typeof booking.checkOutDate === 'string' ? parseISO(booking.checkOutDate) : booking.checkOutDate;
             const nights = differenceInDays(checkOutDate, checkInDate);
 
             return (
