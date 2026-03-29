@@ -27,13 +27,16 @@ function mapPropertyFromDb(row) {
     confirmationPage: hasConfirmation
       ? { ...DEFAULT_CONFIRMATION_PAGE, ...cp, buttons: cp.buttons || DEFAULT_CONFIRMATION_PAGE.buttons }
       : { ...DEFAULT_CONFIRMATION_PAGE },
+    icalExportToken: row.ical_export_token,
+    icalImportUrls: row.ical_import_urls || [],
+    icalLastSyncedAt: row.ical_last_synced_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 function mapPropertyToDb(data) {
-  return {
+  const dbData = {
     name: data.name,
     description: data.description,
     base_nightly_rate: Number(data.baseNightlyRate),
@@ -47,6 +50,10 @@ function mapPropertyToDb(data) {
     confirmation_page: data.confirmationPage || {},
     updated_at: new Date().toISOString(),
   };
+  if (data.icalImportUrls !== undefined) {
+    dbData.ical_import_urls = data.icalImportUrls;
+  }
+  return dbData;
 }
 
 function mapPricingRuleFromDb(row) {
@@ -114,6 +121,8 @@ function mapBlockedDateFromDb(row) {
     date: row.date,
     propertyId: row.property_id,
     reason: row.reason,
+    externalUid: row.external_uid,
+    source: row.source || 'manual',
   };
 }
 

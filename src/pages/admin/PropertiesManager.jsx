@@ -1,9 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { format } from 'date-fns';
 import { useStore } from '../../context/StoreContext';
 import { Button } from '../../components/ui/Button';
 import { formatCurrency, cn } from '../../lib/utils';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../../common/SafeIcon';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const RichTextEditor = ({ value, onChange }) => {
   const editorRef = useRef(null);
@@ -83,7 +86,10 @@ const PropertiesManager = () => {
       followupTemplateId: '',
       followupDaysBefore: 1
     },
-    confirmationPage: defaultConfirmation
+    confirmationPage: defaultConfirmation,
+    icalExportToken: null,
+    icalImportUrls: [],
+    icalLastSyncedAt: null
   });
 
   const handleOpenModal = (property = null) => {
@@ -100,7 +106,10 @@ const PropertiesManager = () => {
         },
         confirmationPage: hasConfirmation
           ? { ...defaultConfirmation, ...cp, buttons: Array.isArray(cp.buttons) ? cp.buttons : defaultConfirmation.buttons }
-          : { ...defaultConfirmation }
+          : { ...defaultConfirmation },
+        icalExportToken: property.icalExportToken || null,
+        icalImportUrls: property.icalImportUrls || [],
+        icalLastSyncedAt: property.icalLastSyncedAt || null
       });
     } else {
       setEditingId(null);
@@ -119,7 +128,10 @@ const PropertiesManager = () => {
           followupTemplateId: '',
           followupDaysBefore: 1
         },
-        confirmationPage: defaultConfirmation
+        confirmationPage: defaultConfirmation,
+        icalExportToken: null,
+        icalImportUrls: [],
+        icalLastSyncedAt: null
       });
     }
     setActiveTab('general');
@@ -128,6 +140,7 @@ const PropertiesManager = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const filteredImportUrls = (formData.icalImportUrls || []).filter(url => url && url.trim());
     const dataToSave = {
       ...formData,
       base_nightly_rate: Number(formData.base_nightly_rate),
@@ -137,7 +150,8 @@ const PropertiesManager = () => {
       emailTemplates: {
         ...formData.emailTemplates,
         followupDaysBefore: Number(formData.emailTemplates.followupDaysBefore)
-      }
+      },
+      icalImportUrls: filteredImportUrls
     };
 
     try {
@@ -279,6 +293,17 @@ const PropertiesManager = () => {
               >
                 Confirmation Page
               </button>
+              {editingId && (
+                <button
+                  onClick={() => setActiveTab('calendar-sync')}
+                  className={cn(
+                    "flex-1 py-3 text-sm font-bold border-b-2 transition-colors",
+                    activeTab === 'calendar-sync' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  Calendar Sync
+                </button>
+              )}
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
@@ -544,6 +569,120 @@ const PropertiesManager = () => {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'calendar-sync' && editingId && (
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <SafeIcon icon={FiIcons.FiCalendar} className="text-blue-600 text-xl mt-0.5" />
+                        <div>
+                          <h4 className="font-bold text-blue-900 mb-1">Export Calendar to Airbnb/Vrbo</h4>
+                          <p className="text-sm text-blue-700 mb-3">
+                            Copy this URL and paste it into your Airbnb or Vrbo calendar import settings to sync your direct bookings.
+                          </p>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={formData.icalExportToken ? `${SUPABASE_URL}/functions/v1/export-ical?token=${formData.icalExportToken}` : 'Save property first to generate export URL'}
+                              className="flex-1 p-2 bg-white border border-blue-300 rounded-lg text-sm font-mono text-gray-700"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={!formData.icalExportToken}
+                              onClick={() => {
+                                const url = `${SUPABASE_URL}/functions/v1/export-ical?token=${formData.icalExportToken}`;
+                                navigator.clipboard.writeText(url);
+                                alert('Export URL copied to clipboard!');
+                              }}
+                            >
+                              <SafeIcon icon={FiIcons.FiCopy} className="mr-1" />
+                              Copy
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                      <div className="flex items-start gap-3 mb-4">
+                        <SafeIcon icon={FiIcons.FiDownload} className="text-gray-600 text-xl mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-900 mb-1">Import from Airbnb/Vrbo</h4>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Paste iCal URLs from your external listings to automatically block those dates on this property.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {(formData.icalImportUrls || []).map((url, idx) => (
+                          <div key={idx} className="flex gap-2">
+                            <input
+                              type="url"
+                              value={url}
+                              onChange={(e) => {
+                                const newUrls = [...(formData.icalImportUrls || [])];
+                                newUrls[idx] = e.target.value;
+                                setFormData({ ...formData, icalImportUrls: newUrls });
+                              }}
+                              className="flex-1 p-2 border border-gray-300 rounded-lg text-sm"
+                              placeholder="https://www.airbnb.com/calendar/ical/..."
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="danger"
+                              onClick={() => {
+                                const newUrls = (formData.icalImportUrls || []).filter((_, i) => i !== idx);
+                                setFormData({ ...formData, icalImportUrls: newUrls });
+                              }}
+                            >
+                              <SafeIcon icon={FiIcons.FiTrash2} />
+                            </Button>
+                          </div>
+                        ))}
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              icalImportUrls: [...(formData.icalImportUrls || []), '']
+                            });
+                          }}
+                        >
+                          <SafeIcon icon={FiIcons.FiPlus} className="mr-1" />
+                          Add Import URL
+                        </Button>
+                      </div>
+
+                      {formData.icalLastSyncedAt && (
+                        <p className="text-xs text-gray-500 mt-4 flex items-center gap-1">
+                          <SafeIcon icon={FiIcons.FiClock} />
+                          Last synced: {format(new Date(formData.icalLastSyncedAt), 'MMM d, yyyy h:mm a')}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <SafeIcon icon={FiIcons.FiInfo} className="text-amber-600 text-lg mt-0.5" />
+                        <div className="text-sm text-amber-800">
+                          <p className="font-bold mb-1">How Calendar Sync Works</p>
+                          <ul className="list-disc list-inside space-y-1 text-xs">
+                            <li><strong>Export:</strong> Airbnb/Vrbo will periodically fetch your export URL to see your direct bookings.</li>
+                            <li><strong>Import:</strong> Our system syncs external calendars every 15 minutes to block dates.</li>
+                            <li><strong>Same-day turnover:</strong> Checkout days remain available for new check-ins.</li>
+                          </ul>
+                        </div>
                       </div>
                     </div>
                   </div>
