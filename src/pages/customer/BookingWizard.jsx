@@ -12,6 +12,34 @@ import { useSearchParams } from 'react-router-dom';
 
 const steps = ['Booking Details', 'Your Information'];
 
+const GuestStepper = ({ label, sublabel, value, onChange, min = 0, max }) => (
+  <div className="flex items-center justify-between py-3">
+    <div>
+      <p className="text-sm font-semibold text-gray-900">{label}</p>
+      <p className="text-xs text-gray-500">{sublabel}</p>
+    </div>
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(min, value - 1))}
+        disabled={value <= min}
+        className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <SafeIcon icon={FiIcons.FiMinus} className="text-xs" />
+      </button>
+      <span className="w-6 text-center font-bold text-gray-900 text-sm">{value}</span>
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(max, value + 1))}
+        disabled={max !== undefined && value >= max}
+        className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <SafeIcon icon={FiIcons.FiPlus} className="text-xs" />
+      </button>
+    </div>
+  </div>
+);
+
 const BookingWizard = () => {
   const [searchParams] = useSearchParams();
   const {
@@ -25,7 +53,8 @@ const BookingWizard = () => {
     isLoading: storeLoading,
   } = useStore();
 
-  const isFromCalendar = searchParams.get('from') === 'calendar';
+  const isEmbedMode = !!searchParams.get('propertyId');
+
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [completed, setCompleted] = useState(false);
@@ -33,25 +62,42 @@ const BookingWizard = () => {
   const [hasViewedPolicies, setHasViewedPolicies] = useState(false);
   const [agreedToPolicies, setAgreedToPolicies] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showGuestPanel, setShowGuestPanel] = useState(false);
+  const [showAddOnsPanel, setShowAddOnsPanel] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const calendarRef = useRef(null);
+  const guestPanelRef = useRef(null);
+  const addOnsPanelRef = useRef(null);
 
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     property: null,
     checkInDate: '',
     checkOutDate: '',
-    guestCount: 1,
+    adults: 1,
+    children: 0,
+    infants: 0,
     selectedAddOns: [],
     contactName: '',
     contactEmail: '',
     contactPhone: '',
     descriptionOfUse: '',
     notes: '',
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
+  const [presetPropertyId, setPresetPropertyId] = useState(null);
 
   const [estimatedPrice, setEstimatedPrice] = useState(0);
   const [availableAddOns, setAvailableAddOns] = useState([]);
   const [dateConflict, setDateConflict] = useState(null);
+
+  const guestCount = formData.adults + formData.children;
+  const maxGuests = formData.property?.maxGuests || 0;
+
+  const wizardBtnColor = settings?.wizardButtonColor || null;
+  const btnStyle = wizardBtnColor
+    ? { backgroundColor: wizardBtnColor, borderColor: wizardBtnColor }
+    : {};
 
   useEffect(() => {
     if (storeLoading) return;
@@ -61,6 +107,7 @@ const BookingWizard = () => {
     const checkOutParam = searchParams.get('checkOutDate');
 
     if (propertyId) {
+      setPresetPropertyId(propertyId);
       const selectedProperty = properties.find(p => p.id === propertyId);
       if (selectedProperty && selectedProperty.isActive) {
         setFormData(prev => ({ ...prev, property: selectedProperty }));
@@ -114,7 +161,6 @@ const BookingWizard = () => {
     availableAddOns,
   ]);
 
-  // BUG FIX: filter bookings strictly by propertyId before checking for conflicts
   useEffect(() => {
     if (!formData.property || !formData.checkInDate || !formData.checkOutDate) {
       setDateConflict(null);
@@ -157,12 +203,16 @@ const BookingWizard = () => {
       if (calendarRef.current && !calendarRef.current.contains(e.target)) {
         setShowCalendar(false);
       }
+      if (guestPanelRef.current && !guestPanelRef.current.contains(e.target)) {
+        setShowGuestPanel(false);
+      }
+      if (addOnsPanelRef.current && !addOnsPanelRef.current.contains(e.target)) {
+        setShowAddOnsPanel(false);
+      }
     };
-    if (showCalendar) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showCalendar]);
+  }, []);
 
   const getNights = () => {
     if (!formData.checkInDate || !formData.checkOutDate) return 0;
@@ -181,8 +231,8 @@ const BookingWizard = () => {
     return (
       formData.property &&
       isDateRangeValid() &&
-      formData.guestCount >= 1 &&
-      formData.guestCount <= (formData.property?.maxGuests || 0)
+      guestCount >= 1 &&
+      guestCount <= maxGuests
     );
   };
 
@@ -191,7 +241,7 @@ const BookingWizard = () => {
       formData.contactName.trim() !== '' &&
       formData.contactEmail.trim() !== '' &&
       formData.contactPhone.trim() !== '' &&
-      formData.guestCount > 0 &&
+      guestCount > 0 &&
       formData.descriptionOfUse.trim() !== '' &&
       hasViewedPolicies &&
       agreedToPolicies
@@ -205,6 +255,7 @@ const BookingWizard = () => {
     try {
       await addBooking({
         ...formData,
+        guestCount,
         totalPrice: estimatedPrice,
         agreedToPolicies: true,
         policiesViewedAt: new Date().toISOString(),
@@ -217,10 +268,42 @@ const BookingWizard = () => {
     }
   };
 
+  const handleBookAnother = () => {
+    const presetProp = presetPropertyId
+      ? properties.find(p => p.id === presetPropertyId)
+      : null;
+    setFormData({
+      ...initialFormData,
+      property: presetProp || null,
+    });
+    setCurrentStep(0);
+    setCompleted(false);
+    setHasViewedPolicies(false);
+    setAgreedToPolicies(false);
+    setSubmitError('');
+    setEstimatedPrice(0);
+    setShowCalendar(false);
+    setShowGuestPanel(false);
+    setShowAddOnsPanel(false);
+  };
+
   const formatDateDisplay = (dateStr) => {
     if (!dateStr) return null;
     const [y, m, d] = dateStr.split('-').map(Number);
     return format(new Date(y, m - 1, d), 'MMM d, yyyy');
+  };
+
+  const buildGuestSummary = () => {
+    const parts = [];
+    const total = formData.adults + formData.children;
+    if (total > 0) parts.push(`${total} guest${total !== 1 ? 's' : ''}`);
+    if (formData.infants > 0) parts.push(`${formData.infants} infant${formData.infants !== 1 ? 's' : ''}`);
+    return parts.length > 0 ? parts.join(', ') : '0 guests';
+  };
+
+  const buildAddOnsSummary = () => {
+    const count = formData.selectedAddOns.length;
+    return count > 0 ? `${count} add-on${count !== 1 ? 's' : ''} selected` : 'No add-ons selected';
   };
 
   const PoliciesModal = () => (
@@ -286,41 +369,26 @@ const BookingWizard = () => {
   }
 
   if (completed) {
-    const homeUrl = isFromCalendar ? '/calendar' : '/';
-    const confirmation = formData.property?.confirmationPage || {
-      title: 'Request Received!',
-      message: "<p>We've received your booking request. An admin will review it shortly. You'll receive an email update soon.</p>",
-      buttons: [{ label: 'Back to Home', url: homeUrl, style: 'primary' }],
-    };
-
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center max-w-2xl mx-auto">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center max-w-2xl mx-auto py-12">
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
           <SafeIcon icon={FiIcons.FiCheck} className="text-4xl text-green-700" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">{confirmation.title}</h2>
-        <div
-          className="text-gray-700 mb-8 prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: confirmation.message }}
-        />
-        <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
-          {confirmation.buttons?.map((btn, idx) => {
-            const btnUrl = isFromCalendar && (btn.url === '/' || btn.url === '') ? '/calendar' : btn.url;
-            return (
-              <Button
-                key={idx}
-                variant={btn.style === 'outline' ? 'outline' : 'primary'}
-                onClick={() => (window.location.href = btnUrl)}
-                className="min-w-[140px]"
-              >
-                {btn.label}
-              </Button>
-            );
-          })}
-          {(!confirmation.buttons || confirmation.buttons.length === 0) && (
-            <Button onClick={() => (window.location.href = homeUrl)}>Back to Home</Button>
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">Reservation Confirmed!</h2>
+        <p className="text-gray-600 mb-8 max-w-sm">
+          We've received your booking request. An admin will review it shortly and you'll receive an email confirmation soon.
+        </p>
+        <button
+          type="button"
+          onClick={handleBookAnother}
+          className={cn(
+            "px-8 py-3 rounded-xl font-bold text-white transition-opacity hover:opacity-90",
+            !wizardBtnColor && "bg-primary"
           )}
-        </div>
+          style={btnStyle}
+        >
+          Book Another Stay
+        </button>
       </div>
     );
   }
@@ -404,19 +472,21 @@ const BookingWizard = () => {
                         <h2 className="text-xl font-bold text-gray-900">{formData.property.name}</h2>
                         <p className="text-sm text-gray-500 mt-0.5">{formData.property.description}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({
-                          ...prev,
-                          property: null,
-                          checkInDate: '',
-                          checkOutDate: '',
-                          selectedAddOns: [],
-                        }))}
-                        className="text-xs text-gray-400 hover:text-gray-700 underline ml-3 flex-shrink-0 mt-1"
-                      >
-                        Change
-                      </button>
+                      {!isEmbedMode && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            property: null,
+                            checkInDate: '',
+                            checkOutDate: '',
+                            selectedAddOns: [],
+                          }))}
+                          className="text-xs text-gray-400 hover:text-gray-700 underline ml-3 flex-shrink-0 mt-1"
+                        >
+                          Change
+                        </button>
+                      )}
                     </div>
                     <div className="mt-3">
                       <span className="text-2xl font-bold text-gray-900">{formatCurrency(formData.property.baseNightlyRate)}</span>
@@ -515,78 +585,121 @@ const BookingWizard = () => {
                     )}
                   </div>
 
-                  <div className="p-5 border-b border-gray-100">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Guests</label>
-                    <div className="flex items-center gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, guestCount: Math.max(1, prev.guestCount - 1) }))}
-                        disabled={formData.guestCount <= 1}
-                        className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <SafeIcon icon={FiIcons.FiMinus} className="text-sm" />
-                      </button>
-                      <span className="w-8 text-center font-bold text-gray-900 text-lg">{formData.guestCount}</span>
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, guestCount: Math.min(formData.property.maxGuests, prev.guestCount + 1) }))}
-                        disabled={formData.guestCount >= formData.property.maxGuests}
-                        className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <SafeIcon icon={FiIcons.FiPlus} className="text-sm" />
-                      </button>
-                      <span className="text-xs text-gray-400">Max {formData.property.maxGuests}</span>
-                    </div>
+                  {/* Guests dropdown */}
+                  <div className="border-b border-gray-100" ref={guestPanelRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowGuestPanel(p => !p)}
+                      className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="text-left">
+                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Guests</div>
+                        <div className="text-sm font-semibold text-gray-900">{buildGuestSummary()}</div>
+                      </div>
+                      <SafeIcon
+                        icon={showGuestPanel ? FiIcons.FiChevronUp : FiIcons.FiChevronDown}
+                        className="text-gray-400 text-lg flex-shrink-0"
+                      />
+                    </button>
+
+                    {showGuestPanel && (
+                      <div className="px-5 pb-4 border-t border-gray-100 divide-y divide-gray-100">
+                        <GuestStepper
+                          label="Adults"
+                          sublabel="Age 13+"
+                          value={formData.adults}
+                          min={1}
+                          max={maxGuests - formData.children}
+                          onChange={(v) => setFormData(prev => ({ ...prev, adults: v }))}
+                        />
+                        <GuestStepper
+                          label="Children"
+                          sublabel="Ages 2–12"
+                          value={formData.children}
+                          min={0}
+                          max={maxGuests - formData.adults}
+                          onChange={(v) => setFormData(prev => ({ ...prev, children: v }))}
+                        />
+                        <GuestStepper
+                          label="Infants"
+                          sublabel="Under 2"
+                          value={formData.infants}
+                          min={0}
+                          max={99}
+                          onChange={(v) => setFormData(prev => ({ ...prev, infants: v }))}
+                        />
+                        <p className="text-xs text-gray-400 pt-3">
+                          Max {maxGuests} guests (adults + children). Infants don't count toward the limit.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
+                  {/* Enhance your stay dropdown */}
                   {availableAddOns.length > 0 && (
-                    <div className="p-5 border-b border-gray-100">
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Enhance your stay</label>
-                      <div className="space-y-2">
-                        {availableAddOns.map(addon => {
-                          const isSelected = formData.selectedAddOns.includes(addon.id);
-                          const addonTotal = addon.type === 'per_night' && nights > 0 ? addon.price * nights : addon.price;
+                    <div className="border-b border-gray-100" ref={addOnsPanelRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddOnsPanel(p => !p)}
+                        className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="text-left">
+                          <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Enhance your stay</div>
+                          <div className="text-sm font-semibold text-gray-900">{buildAddOnsSummary()}</div>
+                        </div>
+                        <SafeIcon
+                          icon={showAddOnsPanel ? FiIcons.FiChevronUp : FiIcons.FiChevronDown}
+                          className="text-gray-400 text-lg flex-shrink-0"
+                        />
+                      </button>
 
-                          return (
-                            <div
-                              key={addon.id}
-                              onClick={() => setFormData(prev => ({
-                                ...prev,
-                                selectedAddOns: isSelected
-                                  ? prev.selectedAddOns.filter(id => id !== addon.id)
-                                  : [...prev.selectedAddOns, addon.id],
-                              }))}
-                              className={cn(
-                                "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all",
-                                isSelected ? "border-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-400"
-                              )}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={cn(
-                                  "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0",
-                                  isSelected ? "bg-gray-900 border-gray-900" : "border-gray-300"
-                                )}>
-                                  {isSelected && <SafeIcon icon={FiIcons.FiCheck} className="text-white text-xs" />}
+                      {showAddOnsPanel && (
+                        <div className="px-5 pb-4 border-t border-gray-100 space-y-2">
+                          {availableAddOns.map(addon => {
+                            const isSelected = formData.selectedAddOns.includes(addon.id);
+                            const addonTotal = addon.type === 'per_night' && nights > 0 ? addon.price * nights : addon.price;
+
+                            return (
+                              <div
+                                key={addon.id}
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  selectedAddOns: isSelected
+                                    ? prev.selectedAddOns.filter(id => id !== addon.id)
+                                    : [...prev.selectedAddOns, addon.id],
+                                }))}
+                                className={cn(
+                                  "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all mt-2",
+                                  isSelected ? "border-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-400"
+                                )}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={cn(
+                                    "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0",
+                                    isSelected ? "bg-gray-900 border-gray-900" : "border-gray-300"
+                                  )}>
+                                    {isSelected && <SafeIcon icon={FiIcons.FiCheck} className="text-white text-xs" />}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-semibold text-gray-900">{addon.name}</p>
+                                    {addon.description && (
+                                      <p className="text-xs text-gray-500">{addon.description}</p>
+                                    )}
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-sm font-semibold text-gray-900">{addon.name}</p>
-                                  {addon.description && (
-                                    <p className="text-xs text-gray-500">{addon.description}</p>
-                                  )}
+                                <div className="text-right pl-2 flex-shrink-0">
+                                  <span className="text-sm font-bold text-gray-900">
+                                    {nights > 0 ? formatCurrency(addonTotal) : formatCurrency(addon.price)}
+                                  </span>
+                                  <span className="text-xs text-gray-400 block">
+                                    {addon.type === 'flat' ? 'one-time' : `${formatCurrency(addon.price)} × ${nights || '?'} nights`}
+                                  </span>
                                 </div>
                               </div>
-                              <div className="text-right pl-2 flex-shrink-0">
-                                <span className="text-sm font-bold text-gray-900">
-                                  {nights > 0 ? formatCurrency(addonTotal) : formatCurrency(addon.price)}
-                                </span>
-                                <span className="text-xs text-gray-400 block">
-                                  {addon.type === 'flat' ? 'one-time' : `${formatCurrency(addon.price)} × ${nights || '?'} nights`}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -791,7 +904,7 @@ const BookingWizard = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Guests</span>
-                  <span className="font-semibold text-gray-900">{formData.guestCount}</span>
+                  <span className="font-semibold text-gray-900">{buildGuestSummary()}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2.5 space-y-1.5">
                   <div className="flex justify-between text-sm">
@@ -826,7 +939,10 @@ const BookingWizard = () => {
         </motion.div>
       </AnimatePresence>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.07)]">
+      <div className={cn(
+        "p-4 bg-white border-t border-gray-200 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.07)]",
+        isEmbedMode ? "sticky bottom-0" : "fixed bottom-0 left-0 right-0"
+      )}>
         <div className="flex gap-3 max-w-2xl mx-auto">
           {currentStep > 0 && (
             <Button
@@ -839,23 +955,32 @@ const BookingWizard = () => {
             </Button>
           )}
           {currentStep === 0 ? (
-            <Button
-              className="flex-1 font-bold shadow-lg text-white"
+            <button
+              type="button"
+              className={cn(
+                "flex-1 font-bold shadow-lg text-white py-3 px-6 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1",
+                !wizardBtnColor && "bg-primary"
+              )}
+              style={btnStyle}
               onClick={() => setCurrentStep(1)}
               disabled={!isCardValid()}
             >
               Reserve
               <SafeIcon icon={FiIcons.FiChevronRight} className="ml-1" />
-            </Button>
+            </button>
           ) : (
-            <Button
-              className="flex-1 font-bold shadow-lg text-white"
+            <button
+              type="button"
+              className={cn(
+                "flex-1 font-bold shadow-lg text-white py-3 px-6 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1",
+                !wizardBtnColor && "bg-primary"
+              )}
+              style={btnStyle}
               onClick={handleSubmit}
-              isLoading={loading}
-              disabled={!isReviewStepValid()}
+              disabled={!isReviewStepValid() || loading}
             >
               {loading ? 'Submitting...' : 'Submit Request'}
-            </Button>
+            </button>
           )}
         </div>
       </div>

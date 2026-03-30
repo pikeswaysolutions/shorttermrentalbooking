@@ -492,6 +492,37 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Booking Widget Button Color</label>
+                <div className="flex gap-2 max-w-xs">
+                  <input
+                    type="color"
+                    className="h-10 w-10 rounded cursor-pointer border border-gray-300 p-0.5"
+                    value={formData.wizardButtonColor || formData.primaryColor}
+                    onChange={(e) => setFormData({ ...formData, wizardButtonColor: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    className="flex-1 p-2 border border-gray-300 rounded-lg font-mono text-sm uppercase"
+                    value={formData.wizardButtonColor || ''}
+                    onChange={(e) => setFormData({ ...formData, wizardButtonColor: e.target.value || null })}
+                    placeholder="Defaults to primary color"
+                  />
+                  {formData.wizardButtonColor && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, wizardButtonColor: null })}
+                      className="px-3 py-2 text-xs text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Overrides the Reserve button color in the embedded booking widget. Leave blank to use the primary color.
+                </p>
+              </div>
             </div>
           )}
 
