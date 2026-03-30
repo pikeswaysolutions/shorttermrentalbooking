@@ -216,28 +216,28 @@ const BookingWizard = () => {
             <h4 className="font-bold text-lg text-gray-900 mb-2">1. Booking & Payment Terms</h4>
             <p className="text-gray-700 leading-relaxed">
               {settings.rentalPolicies?.payment || 
-                "A non-refundable deposit of 50% is required to secure your booking. The remaining balance is due 7 days prior to the event date. Accepted payment methods include credit card, bank transfer, and cash."}
+                "A non-refundable deposit of 50% is required to secure your booking. The remaining balance is due 7 days prior to the check-in date. Accepted payment methods include credit card, bank transfer, and cash."}
             </p>
           </div>
           <div>
             <h4 className="font-bold text-lg text-gray-900 mb-2">2. Cancellation Policy</h4>
             <p className="text-gray-700 leading-relaxed">
               {settings.rentalPolicies?.cancellation || 
-                "Cancellations made more than 30 days before the event date will receive a 50% refund of the deposit. Cancellations made within 30 days of the event are non-refundable."}
+                "Cancellations made more than 30 days before the check-in date will receive a 50% refund of the deposit. Cancellations made within 30 days of check-in are non-refundable."}
             </p>
           </div>
           <div>
             <h4 className="font-bold text-lg text-gray-900 mb-2">3. Liability & Insurance</h4>
             <p className="text-gray-700 leading-relaxed">
               {settings.rentalPolicies?.liability || 
-                "Renters are responsible for any damage to the venue or equipment during the rental period. Liability insurance is required for events with alcohol service or over 100 guests."}
+                "Renters are responsible for any damage to the venue or equipment during the rental period. Liability insurance may be required for stays with alcohol service or over 100 guests."}
             </p>
           </div>
           <div>
             <h4 className="font-bold text-lg text-gray-900 mb-2">4. Setup & Cleanup</h4>
             <p className="text-gray-700 leading-relaxed">
               {settings.rentalPolicies?.cleanup || 
-                "The venue must be left in the same condition as received. Additional cleaning fees may apply if the venue is not properly cleaned after the event."}
+                "The venue must be left in the same condition as received. Additional cleaning fees may apply if the property is not properly cleaned after your stay."}
             </p>
           </div>
         </div>
@@ -634,7 +634,7 @@ const BookingWizard = () => {
                     Description of Use <span className="text-red-500">*</span>
                   </label>
                   <textarea 
-                    placeholder="Please describe how you plan to use the venue (e.g., wedding reception with dinner and dancing, corporate training session, etc.)"
+                    placeholder="Please describe your stay (e.g., family vacation, romantic getaway, group trip, etc.)"
                     className="w-full p-3 border border-gray-300 rounded-lg h-24 bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                     value={formData.descriptionOfUse}
                     onChange={e => setFormData(p => ({ ...p, descriptionOfUse: e.target.value }))}

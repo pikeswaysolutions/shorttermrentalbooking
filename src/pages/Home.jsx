@@ -26,16 +26,16 @@ const Home = () => {
         )}
         
         <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-          {settings.companyName || 'Luxe Events'}
+          {settings.companyName || 'Luxe Rentals'}
         </h1>
         <p className="text-gray-600 text-lg">
-          Book your perfect event space in minutes. Real-time availability and instant quotes.
+          Browse our rental properties and request a stay in minutes. Real-time availability and instant quotes.
         </p>
 
         <div className="grid gap-4 pt-4">
           <Link to="/booking">
             <Button size="lg" className="w-full shadow-xl shadow-blue-200">
-              Book an Event
+              Book a Stay
             </Button>
           </Link>
           <Link to="/admin/dashboard">

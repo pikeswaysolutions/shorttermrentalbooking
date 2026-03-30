@@ -1,2 +1,2 @@
-# Event-Space-Booking-Management-System-2542
+# Short-Term Rental Booking Management System
 Repository created by Greta

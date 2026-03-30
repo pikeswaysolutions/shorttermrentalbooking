@@ -26,9 +26,9 @@ const AdminCalendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [blockReason, setBlockReason] = useState('');
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [showEventModal, setShowEventModal] = useState(false);
-  const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [isEditingBooking, setIsEditingBooking] = useState(false);
   const [editFormData, setEditFormData] = useState({});
 
   const renderHeader = () => (
@@ -114,7 +114,7 @@ const AdminCalendar = () => {
                     key={b.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleEventClick(b);
+                      handleBookingClick(b);
                     }}
                     className={cn(
                       "h-1.5 rounded-full cursor-pointer hover:scale-110 transition-transform",
@@ -145,27 +145,27 @@ const AdminCalendar = () => {
     setBlockReason('');
   };
 
-  const handleEventClick = (event) => {
-    setSelectedEvent(event);
+  const handleBookingClick = (booking) => {
+    setSelectedBooking(booking);
     setEditFormData({
-      ...event,
-      property: event.property?.id || event.propertyId,
-      checkInDate: event.checkInDate,
-      checkOutDate: event.checkOutDate,
+      ...booking,
+      property: booking.property?.id || booking.propertyId,
+      checkInDate: booking.checkInDate,
+      checkOutDate: booking.checkOutDate,
     });
-    setIsEditingEvent(false);
-    setShowEventModal(true);
+    setIsEditingBooking(false);
+    setShowBookingModal(true);
   };
 
   const handleUpdateStatus = (status) => {
-    if (selectedEvent) {
-      updateBookingStatus(selectedEvent.id, status);
-      setShowEventModal(false);
+    if (selectedBooking) {
+      updateBookingStatus(selectedBooking.id, status);
+      setShowBookingModal(false);
     }
   };
 
-  const handleSaveEventChanges = () => {
-    if (selectedEvent) {
+  const handleSaveBookingChanges = () => {
+    if (selectedBooking) {
       const checkIn = new Date(editFormData.checkInDate);
       const checkOut = new Date(editFormData.checkOutDate);
 
@@ -176,7 +176,7 @@ const AdminCalendar = () => {
 
       const propertyObj = properties.find(p => p.id === editFormData.property) || editFormData.property;
       updateBookingDetails({
-        ...selectedEvent,
+        ...selectedBooking,
         contactName: editFormData.contactName,
         contactEmail: editFormData.contactEmail,
         contactPhone: editFormData.contactPhone,
@@ -188,8 +188,8 @@ const AdminCalendar = () => {
         propertyId: typeof editFormData.property === 'string' ? editFormData.property : editFormData.property?.id,
         property: propertyObj,
       });
-      setIsEditingEvent(false);
-      setShowEventModal(false);
+      setIsEditingBooking(false);
+      setShowBookingModal(false);
     }
   };
 
@@ -271,7 +271,7 @@ const AdminCalendar = () => {
               </h4>
 
               {dayBookings.length === 0 && blockedDates.length === 0 && (
-                <p className="text-sm text-gray-500 py-4 text-center font-medium">No events or blocks.</p>
+                <p className="text-sm text-gray-500 py-4 text-center font-medium">No bookings or blocks.</p>
               )}
 
               {dayBookings.map(b => {
@@ -283,7 +283,7 @@ const AdminCalendar = () => {
                 return (
                   <div
                     key={b.id}
-                    onClick={() => handleEventClick(b)}
+                    onClick={() => handleBookingClick(b)}
                     className="p-3 rounded-lg border border-gray-200 hover:border-[var(--color-primary)] transition-colors bg-gray-50 cursor-pointer hover:shadow-md"
                   >
                     <div className="flex justify-between items-start mb-1">
@@ -363,18 +363,18 @@ const AdminCalendar = () => {
         </div>
       )}
 
-      {showEventModal && selectedEvent && (
+      {showBookingModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  {isEditingEvent ? 'Edit Booking' : 'Booking Details'}
-                  <span className="text-gray-400 text-sm font-normal">#{selectedEvent.id.slice(-6)}</span>
+                  {isEditingBooking ? 'Edit Booking' : 'Booking Details'}
+                  <span className="text-gray-400 text-sm font-normal">#{selectedBooking.id.slice(-6)}</span>
                 </h3>
               </div>
               <button
-                onClick={() => setShowEventModal(false)}
+                onClick={() => setShowBookingModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <SafeIcon icon={FiIcons.FiX} className="text-2xl" />
@@ -382,23 +382,23 @@ const AdminCalendar = () => {
             </div>
 
             <div className="p-6 space-y-6">
-              {!isEditingEvent && (
+              {!isEditingBooking && (
                 <div className={cn(
                   "p-4 rounded-lg flex items-center justify-between",
-                  selectedEvent.status === 'confirmed' ? "bg-green-50 text-green-900 border border-green-200" :
-                  selectedEvent.status === 'declined' ? "bg-red-50 text-red-900 border border-red-200" :
+                  selectedBooking.status === 'confirmed' ? "bg-green-50 text-green-900 border border-green-200" :
+                  selectedBooking.status === 'declined' ? "bg-red-50 text-red-900 border border-red-200" :
                   "bg-yellow-50 text-yellow-900 border border-yellow-200"
                 )}>
                   <div className="flex items-center gap-2">
                     <SafeIcon icon={
-                      selectedEvent.status === 'confirmed' ? FiIcons.FiCheckCircle :
-                      selectedEvent.status === 'declined' ? FiIcons.FiXCircle :
+                      selectedBooking.status === 'confirmed' ? FiIcons.FiCheckCircle :
+                      selectedBooking.status === 'declined' ? FiIcons.FiXCircle :
                       FiIcons.FiClock
                     } className="text-xl" />
-                    <span className="font-bold uppercase tracking-wide text-sm">{selectedEvent.status}</span>
+                    <span className="font-bold uppercase tracking-wide text-sm">{selectedBooking.status}</span>
                   </div>
                   <span className="text-xs opacity-75 font-semibold">
-                    Requested on {format(new Date(selectedEvent.createdAt), 'MMM d, yyyy')}
+                    Requested on {format(new Date(selectedBooking.createdAt), 'MMM d, yyyy')}
                   </span>
                 </div>
               )}
@@ -411,7 +411,7 @@ const AdminCalendar = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Customer Name</label>
-                      {isEditingEvent ? (
+                      {isEditingBooking ? (
                         <input
                           type="text"
                           className="w-full p-2 border border-gray-300 rounded-lg"
@@ -419,12 +419,12 @@ const AdminCalendar = () => {
                           onChange={(e) => setEditFormData({...editFormData, contactName: e.target.value})}
                         />
                       ) : (
-                        <p className="text-lg text-gray-900">{selectedEvent.contactName}</p>
+                        <p className="text-lg text-gray-900">{selectedBooking.contactName}</p>
                       )}
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
-                      {isEditingEvent ? (
+                      {isEditingBooking ? (
                         <input
                           type="text"
                           className="w-full p-2 border border-gray-300 rounded-lg"
@@ -432,12 +432,12 @@ const AdminCalendar = () => {
                           onChange={(e) => setEditFormData({...editFormData, contactPhone: e.target.value})}
                         />
                       ) : (
-                        <p className="text-lg text-gray-900">{selectedEvent.contactPhone}</p>
+                        <p className="text-lg text-gray-900">{selectedBooking.contactPhone}</p>
                       )}
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Email Address</label>
-                      {isEditingEvent ? (
+                      {isEditingBooking ? (
                         <input
                           type="email"
                           className="w-full p-2 border border-gray-300 rounded-lg"
@@ -446,8 +446,8 @@ const AdminCalendar = () => {
                         />
                       ) : (
                         <p className="text-lg text-gray-900 flex items-center gap-2">
-                          {selectedEvent.contactEmail}
-                          <a href={`mailto:${selectedEvent.contactEmail}`} className="text-primary hover:text-blue-700">
+                          {selectedBooking.contactEmail}
+                          <a href={`mailto:${selectedBooking.contactEmail}`} className="text-primary hover:text-blue-700">
                             <SafeIcon icon={FiIcons.FiMail} />
                           </a>
                         </p>
@@ -463,7 +463,7 @@ const AdminCalendar = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Property</label>
-                      {isEditingEvent ? (
+                      {isEditingBooking ? (
                         <select
                           className="w-full p-2 border border-gray-300 rounded-lg"
                           value={typeof editFormData.property === 'object' ? editFormData.property.id : editFormData.property}
@@ -474,13 +474,13 @@ const AdminCalendar = () => {
                           ))}
                         </select>
                       ) : (
-                        <p className="text-lg font-bold text-primary">{selectedEvent.property?.name}</p>
+                        <p className="text-lg font-bold text-primary">{selectedBooking.property?.name}</p>
                       )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Check-in Date</label>
-                      {isEditingEvent ? (
+                      {isEditingBooking ? (
                         <input
                           type="date"
                           className="w-full p-2 border border-gray-300 rounded-lg"
@@ -489,13 +489,13 @@ const AdminCalendar = () => {
                         />
                       ) : (
                         <p className="text-lg text-gray-900">
-                          {format(parseISO(selectedEvent.checkInDate), 'MMMM do, yyyy')}
+                          {format(parseISO(selectedBooking.checkInDate), 'MMMM do, yyyy')}
                         </p>
                       )}
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Check-out Date</label>
-                      {isEditingEvent ? (
+                      {isEditingBooking ? (
                         <input
                           type="date"
                           className="w-full p-2 border border-gray-300 rounded-lg"
@@ -504,14 +504,14 @@ const AdminCalendar = () => {
                         />
                       ) : (
                         <p className="text-lg text-gray-900">
-                          {format(parseISO(selectedEvent.checkOutDate), 'MMMM do, yyyy')}
+                          {format(parseISO(selectedBooking.checkOutDate), 'MMMM do, yyyy')}
                         </p>
                       )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Guest Count</label>
-                      {isEditingEvent ? (
+                      {isEditingBooking ? (
                         <input
                           type="number"
                           className="w-full p-2 border border-gray-300 rounded-lg"
@@ -519,7 +519,7 @@ const AdminCalendar = () => {
                           onChange={(e) => setEditFormData({...editFormData, guestCount: parseInt(e.target.value)})}
                         />
                       ) : (
-                        <p className="text-lg text-gray-900">{selectedEvent.guestCount} guests</p>
+                        <p className="text-lg text-gray-900">{selectedBooking.guestCount} guests</p>
                       )}
                     </div>
 
@@ -527,15 +527,15 @@ const AdminCalendar = () => {
                       <label className="block text-sm font-bold text-gray-700 mb-1">Nights</label>
                       <p className="text-lg text-gray-900">
                         {differenceInDays(
-                          parseISO(selectedEvent.checkOutDate),
-                          parseISO(selectedEvent.checkInDate)
+                          parseISO(selectedBooking.checkOutDate),
+                          parseISO(selectedBooking.checkInDate)
                         )} nights
                       </p>
                     </div>
 
                     <div className="md:col-span-2">
                        <label className="block text-sm font-bold text-gray-700 mb-1">Description of Use</label>
-                       {isEditingEvent ? (
+                       {isEditingBooking ? (
                          <textarea
                            className="w-full p-2 border border-gray-300 rounded-lg h-24"
                            value={editFormData.descriptionOfUse}
@@ -543,16 +543,16 @@ const AdminCalendar = () => {
                          />
                        ) : (
                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
-                           "{selectedEvent.descriptionOfUse}"
+                           "{selectedBooking.descriptionOfUse}"
                          </p>
                        )}
                     </div>
 
-                    {!isEditingEvent && (
+                    {!isEditingBooking && (
                       <div className="md:col-span-2 mt-2">
                         <div className="flex justify-between items-center border-t border-gray-200 pt-3">
                            <span className="font-bold text-lg text-gray-900">Total Price</span>
-                           <span className="font-bold text-2xl text-primary">{formatCurrency(selectedEvent.totalPrice)}</span>
+                           <span className="font-bold text-2xl text-primary">{formatCurrency(selectedBooking.totalPrice)}</span>
                         </div>
                       </div>
                     )}
@@ -562,10 +562,10 @@ const AdminCalendar = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row gap-3">
-              {isEditingEvent ? (
+              {isEditingBooking ? (
                 <>
                   <Button
-                    onClick={handleSaveEventChanges}
+                    onClick={handleSaveBookingChanges}
                     className="flex-1"
                   >
                     Save Changes
@@ -574,7 +574,7 @@ const AdminCalendar = () => {
                 </>
               ) : (
                 <>
-                  {selectedEvent.status === 'pending' && (
+                  {selectedBooking.status === 'pending' && (
                     <>
                       <Button
                         onClick={() => handleUpdateStatus('confirmed')}
@@ -601,10 +601,10 @@ const AdminCalendar = () => {
                   >
                     Edit
                   </Button>
-                  {selectedEvent.status !== 'pending' && (
+                  {selectedBooking.status !== 'pending' && (
                     <Button
                       variant="outline"
-                      onClick={() => setShowEventModal(false)}
+                      onClick={() => setShowBookingModal(false)}
                       className="flex-1"
                     >
                       Close
