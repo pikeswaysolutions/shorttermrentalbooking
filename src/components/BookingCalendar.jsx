@@ -8,7 +8,6 @@ import {
   addMonths,
   startOfWeek,
   endOfWeek,
-  isPast,
   isToday,
   isBefore,
   isAfter,
