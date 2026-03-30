@@ -64,10 +64,6 @@ const Settings = () => {
     setTimeout(() => setCopiedLink(null), 2000);
   };
 
-  const bookingEmbedCode = `<iframe src="${appUrl}/booking" style="width:100%; height:700px; border:none; border-radius:12px; overflow:hidden;"></iframe>`;
-  
-  const calendarEmbedCode = `<iframe src="${appUrl}/calendar" style="width:100%; height:900px; border:none; border-radius:12px; overflow:hidden;"></iframe>`;
-
   const HowToUseModal = () => (
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -168,37 +164,37 @@ const Settings = () => {
             </div>
             <div className="ml-10 space-y-4">
               <p className="text-gray-700 leading-relaxed">
-                Embed widgets allow you to display the booking system or calendar directly on your website without users leaving your page.
+                Each property has its own unique embed code so you can place a booking widget on a dedicated external page (e.g., a WordPress site for a single cabin) without guests needing to re-select the property.
               </p>
-              
+
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <h5 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
                   <SafeIcon icon={FiIcons.FiCode} className="text-amber-600" />
-                  How to Embed
+                  How to Get Your Embed Code
                 </h5>
                 <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
-                  <li>Copy the embed code from the "Embed Code" tab</li>
-                  <li>Paste it into your website's HTML where you want the widget to appear</li>
-                  <li>The widget will automatically resize and display</li>
-                  <li>Users can interact with it without leaving your page</li>
+                  <li>Go to the <strong>Properties</strong> section in the admin panel</li>
+                  <li>Click <strong>Edit</strong> on the property you want to embed</li>
+                  <li>Open the <strong>Booking Links</strong> tab inside the edit modal</li>
+                  <li>Copy either the Direct Link or the iframe Embed Code</li>
+                  <li>Paste the code into your website where you want the widget to appear</li>
                 </ol>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
                   <h6 className="font-bold text-gray-900 mb-2 text-sm">Booking Widget</h6>
-                  <p className="text-xs text-gray-600 mb-2">Full booking wizard embedded on your page</p>
+                  <p className="text-xs text-gray-600 mb-2">Full booking wizard pre-locked to a specific property</p>
                   <div className="text-xs text-gray-500">
                     <strong>Height:</strong> 700px<br />
-                    <strong>Best for:</strong> Dedicated booking page
+                    <strong>Best for:</strong> Dedicated property booking page
                   </div>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h6 className="font-bold text-gray-900 mb-2 text-sm">Calendar Widget</h6>
-                  <p className="text-xs text-gray-600 mb-2">Interactive calendar with date selection</p>
+                  <h6 className="font-bold text-gray-900 mb-2 text-sm">Direct Link</h6>
+                  <p className="text-xs text-gray-600 mb-2">A shareable URL that bypasses property selection</p>
                   <div className="text-xs text-gray-500">
-                    <strong>Height:</strong> 900px<br />
-                    <strong>Best for:</strong> Availability display
+                    <strong>Best for:</strong> Email campaigns, nav buttons, ads
                   </div>
                 </div>
               </div>
@@ -314,7 +310,7 @@ const Settings = () => {
     <div className="p-4 md:p-6 max-w-4xl mx-auto pb-24">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        {activeTab !== 'embed' && activeTab !== 'links' && (
+        {activeTab !== 'links' && (
           <Button
             onClick={handleSave}
             disabled={saving}
@@ -385,18 +381,6 @@ const Settings = () => {
           >
             <SafeIcon icon={FiIcons.FiLink} />
             Booking Links
-          </button>
-          <button
-            onClick={() => setActiveTab('embed')}
-            className={cn(
-              "px-6 py-4 text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap",
-              activeTab === 'embed' 
-                ? "text-primary border-b-2 border-primary bg-blue-50/50" 
-                : "text-gray-600 hover:bg-gray-50"
-            )}
-          >
-            <SafeIcon icon={FiIcons.FiCode} />
-            Embed Code
           </button>
         </div>
 
@@ -734,67 +718,6 @@ const Settings = () => {
             </div>
           )}
 
-          {activeTab === 'embed' && (
-            <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                <div className="p-4 bg-blue-50 text-blue-900 rounded-lg text-sm border border-blue-100 flex gap-3 flex-1">
-                  <SafeIcon icon={FiIcons.FiInfo} className="mt-0.5 flex-shrink-0" />
-                  <p>Copy these embed codes to add booking widgets directly to your website pages.</p>
-                </div>
-                <button
-                  onClick={() => setShowHowToUse(true)}
-                  className="ml-4 flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-md"
-                >
-                  <SafeIcon icon={FiIcons.FiHelpCircle} />
-                  How to Use
-                </button>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-gray-900">Customer Booking Widget</h3>
-                  <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">Public</span>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Embed this widget on your public website to allow customers to book events.
-                </p>
-                <div className="relative group">
-                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-wrap break-all">
-                    {bookingEmbedCode}
-                  </pre>
-                  <button
-                    onClick={() => copyToClipboard(bookingEmbedCode, 'booking-embed')}
-                    className="absolute top-2 right-2 bg-white text-gray-900 px-3 py-1.5 rounded-md text-xs font-bold shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100"
-                  >
-                    {copiedLink === 'booking-embed' ? 'Copied!' : 'Copy Code'}
-                  </button>
-                </div>
-              </div>
-
-              <hr className="border-gray-200" />
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-gray-900">Calendar Widget</h3>
-                  <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">Public</span>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Embed an interactive calendar on your website where users can select dates and book.
-                </p>
-                <div className="relative group">
-                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-wrap break-all">
-                    {calendarEmbedCode}
-                  </pre>
-                  <button
-                    onClick={() => copyToClipboard(calendarEmbedCode, 'calendar-embed')}
-                    className="absolute top-2 right-2 bg-white text-gray-900 px-3 py-1.5 rounded-md text-xs font-bold shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100"
-                  >
-                    {copiedLink === 'calendar-embed' ? 'Copied!' : 'Copy Code'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

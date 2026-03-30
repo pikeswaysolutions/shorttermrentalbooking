@@ -13,7 +13,7 @@ const steps = ['Property', 'Dates & Guests', 'Add-ons', 'Review'];
 
 const BookingWizard = () => {
   const [searchParams] = useSearchParams();
-  const { properties, pricingRules, getAddOnsForProperty, addBooking, settings, bookings, blockedDates } = useStore();
+  const { properties, pricingRules, getAddOnsForProperty, addBooking, settings, bookings, blockedDates, isLoading: storeLoading } = useStore();
   const isFromCalendar = searchParams.get('from') === 'calendar';
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -37,13 +37,14 @@ const BookingWizard = () => {
   const [availableAddOns, setAvailableAddOns] = useState([]);
   const [dateConflict, setDateConflict] = useState(null);
 
-  // Handle URL parameters for deep linking
+  // Handle URL parameters for deep linking — gated on store load to avoid race condition
   useEffect(() => {
-    const propertyId = searchParams.get('property');
+    if (storeLoading) return;
+
+    const propertyId = searchParams.get('propertyId');
     const checkInParam = searchParams.get('checkInDate');
     const checkOutParam = searchParams.get('checkOutDate');
 
-    // Pre-select property if provided
     if (propertyId) {
       const selectedProperty = properties.find(p => p.id === propertyId);
       if (selectedProperty && selectedProperty.isActive) {
@@ -52,7 +53,6 @@ const BookingWizard = () => {
       }
     }
 
-    // Pre-select check-in date if provided
     if (checkInParam) {
       setFormData(prev => ({ ...prev, checkInDate: checkInParam }));
       if (!propertyId) {
@@ -60,11 +60,10 @@ const BookingWizard = () => {
       }
     }
 
-    // Pre-select check-out date if provided
     if (checkOutParam) {
       setFormData(prev => ({ ...prev, checkOutDate: checkOutParam }));
     }
-  }, [searchParams, properties]);
+  }, [searchParams, properties, storeLoading]);
 
   // Load add-ons when property changes
   useEffect(() => {
@@ -256,6 +255,17 @@ const BookingWizard = () => {
       </div>
     </div>
   );
+
+  if (storeLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-medium text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (completed) {
     const homeUrl = isFromCalendar ? '/calendar' : '/';

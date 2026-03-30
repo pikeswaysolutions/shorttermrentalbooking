@@ -59,6 +59,89 @@ const RichTextEditor = ({ value, onChange }) => {
   );
 };
 
+const BookingLinksTab = ({ propertyId }) => {
+  const [copiedKey, setCopiedKey] = useState(null);
+  const appUrl = window.location.origin;
+  const directLink = `${appUrl}/booking?propertyId=${propertyId}`;
+  const embedCode = `<iframe src="${appUrl}/booking?propertyId=${propertyId}" style="width:100%; height:700px; border:none; border-radius:12px; overflow:hidden;"></iframe>`;
+
+  const copy = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <SafeIcon icon={FiIcons.FiLink} className="text-blue-600 text-xl mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-bold text-blue-900 mb-1">Direct Booking Link</h4>
+            <p className="text-sm text-blue-700 mb-3">
+              Share or link to this URL so guests land directly on the booking wizard for this property, skipping the selection step.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={directLink}
+                className="flex-1 p-2 bg-white border border-blue-300 rounded-lg text-sm font-mono text-gray-700"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => copy(directLink, 'link')}
+              >
+                <SafeIcon icon={copiedKey === 'link' ? FiIcons.FiCheck : FiIcons.FiCopy} className="mr-1" />
+                {copiedKey === 'link' ? 'Copied!' : 'Copy'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <SafeIcon icon={FiIcons.FiCode} className="text-gray-600 text-xl mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-bold text-gray-900 mb-1">Website Embed Code</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              Paste this iframe snippet into your external website (e.g., WordPress) to embed the booking wizard locked to this property.
+            </p>
+            <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all mb-3">
+              {embedCode}
+            </pre>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => copy(embedCode, 'embed')}
+            >
+              <SafeIcon icon={copiedKey === 'embed' ? FiIcons.FiCheck : FiIcons.FiCopy} className="mr-1" />
+              {copiedKey === 'embed' ? 'Copied!' : 'Copy Embed Code'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <SafeIcon icon={FiIcons.FiInfo} className="text-amber-600 text-lg mt-0.5" />
+          <div className="text-sm text-amber-800">
+            <p className="font-bold mb-1">Usage Tips</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>The direct link is ideal for "Book Now" buttons in navigation menus or email campaigns.</li>
+              <li>The embed code places the full booking wizard inside an iframe on any webpage.</li>
+              <li>Guests will skip property selection and go straight to the date picker.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PropertiesManager = () => {
   const { properties, addProperty, updateProperty, deleteProperty } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -307,6 +390,17 @@ const PropertiesManager = () => {
                   )}
                 >
                   Calendar Sync
+                </button>
+              )}
+              {editingId && (
+                <button
+                  onClick={() => setActiveTab('booking-links')}
+                  className={cn(
+                    "flex-1 py-3 text-sm font-bold border-b-2 transition-colors",
+                    activeTab === 'booking-links' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  Booking Links
                 </button>
               )}
             </div>
@@ -577,6 +671,10 @@ const PropertiesManager = () => {
                       </div>
                     </div>
                   </div>
+                )}
+
+                {activeTab === 'booking-links' && editingId && (
+                  <BookingLinksTab propertyId={editingId} />
                 )}
 
                 {activeTab === 'calendar-sync' && editingId && (

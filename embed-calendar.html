@@ -63,11 +63,15 @@
 
       <div class="code-block">
 &lt;!-- Rental Calendar Widget --&gt;<br>
+&lt;!-- Add ?propertyId=YOUR_ID to this host page's URL to filter the calendar to one property --&gt;<br>
 &lt;div id="rental-calendar-widget"&gt;&lt;/div&gt;<br>
 &lt;script&gt;<br>
 &nbsp;&nbsp;(function() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;var propertyId = new URLSearchParams(window.location.search).get('propertyId');<br>
+&nbsp;&nbsp;&nbsp;&nbsp;var src = window.location.origin + '/admin/calendar';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (propertyId) src += '?propertyId=' + encodeURIComponent(propertyId);<br>
 &nbsp;&nbsp;&nbsp;&nbsp;const iframe = document.createElement('iframe');<br>
-&nbsp;&nbsp;&nbsp;&nbsp;iframe.src = window.location.origin + '/admin/calendar';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;iframe.src = src;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.width = '100%';<br>
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.height = '800px';<br>
 &nbsp;&nbsp;&nbsp;&nbsp;iframe.style.border = 'none';<br>
@@ -89,8 +93,11 @@
       <div id="rental-calendar-widget-demo"></div>
       <script>
         (function() {
+          var propertyId = new URLSearchParams(window.location.search).get('propertyId');
+          var src = window.location.origin + '/admin/calendar';
+          if (propertyId) src += '?propertyId=' + encodeURIComponent(propertyId);
           const iframe = document.createElement('iframe');
-          iframe.src = window.location.origin + '/admin/calendar';
+          iframe.src = src;
           iframe.style.width = '100%';
           iframe.style.height = '800px';
           iframe.style.border = 'none';
