@@ -119,12 +119,12 @@ const Settings = () => {
                   Skip the event type selection and send users directly to the booking flow for a specific event type.
                 </p>
                 <code className="block bg-gray-900 text-gray-100 p-2 rounded text-xs overflow-x-auto">
-                  {`${appUrl}/booking?property=EVENT_ID`}
+                  {`${appUrl}/booking?propertyId=PROPERTY_ID`}
                 </code>
                 <div className="mt-3 text-xs text-gray-600">
                   <strong>Example HTML:</strong>
                   <pre className="bg-white border border-gray-200 p-2 rounded mt-1 overflow-x-auto">
-{`<a href="${appUrl}/booking?property=abc123" class="btn">
+{`<a href="${appUrl}/booking?propertyId=abc123" class="btn">
   Book Wedding Package
 </a>`}
                   </pre>
@@ -140,12 +140,12 @@ const Settings = () => {
                   You can combine parameters to pre-select both the event type and date.
                 </p>
                 <code className="block bg-gray-900 text-gray-100 p-2 rounded text-xs overflow-x-auto">
-                  {`${appUrl}/booking?property=EVENT_ID&date=2024-12-25`}
+                  {`${appUrl}/booking?propertyId=PROPERTY_ID&checkInDate=2024-12-25`}
                 </code>
                 <div className="mt-3 text-xs text-gray-600">
                   <strong>Example HTML:</strong>
                   <pre className="bg-white border border-gray-200 p-2 rounded mt-1 overflow-x-auto">
-{`<a href="${appUrl}/booking?property=abc123&date=2024-12-31" class="btn">
+{`<a href="${appUrl}/booking?propertyId=abc123&checkInDate=2024-12-31" class="btn">
   Book New Year's Eve Event
 </a>`}
                   </pre>
@@ -225,7 +225,7 @@ const Settings = () => {
                 <div>
                   <strong className="text-gray-900 text-sm">Service Page CTAs</strong>
                   <p className="text-xs text-gray-600 mt-1">
-                    On your "Wedding Packages" page, add a button with <code className="bg-gray-200 px-1 rounded">/booking?property=wedding-id</code>
+                    On your property page, add a button with <code className="bg-gray-200 px-1 rounded">/booking?propertyId=PROPERTY_ID</code>
                   </p>
                 </div>
               </div>
@@ -683,11 +683,11 @@ const Settings = () => {
                         <input
                           type="text"
                           readOnly
-                          value={`${appUrl}/booking?property=${property.id}`}
+                          value={`${appUrl}/booking?propertyId=${property.id}`}
                           className="w-full p-2 pr-24 border border-gray-200 rounded-lg bg-gray-50 text-xs font-mono"
                         />
                         <button
-                          onClick={() => copyToClipboard(`${appUrl}/booking?property=${property.id}`, property.id)}
+                          onClick={() => copyToClipboard(`${appUrl}/booking?propertyId=${property.id}`, property.id)}
                           className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-primary text-white rounded-md text-xs font-bold hover:bg-blue-700 transition-colors"
                         >
                           {copiedLink === property.id ? 'Copied!' : 'Copy'}
@@ -709,9 +709,9 @@ const Settings = () => {
   View Calendar
 </a>
 
-<!-- Event Type Button -->
-<a href="${appUrl}/booking?property=EVENT_ID" class="button">
-  Book Wedding
+<!-- Property Button -->
+<a href="${appUrl}/booking?propertyId=PROPERTY_ID" class="button">
+  Book Now
 </a>`}
                 </pre>
               </div>
