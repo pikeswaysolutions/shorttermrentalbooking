@@ -59,11 +59,18 @@ const RichTextEditor = ({ value, onChange }) => {
   );
 };
 
+const PRESET_COLORS = [
+  '#2563eb', '#16a34a', '#dc2626', '#d97706', '#0891b2', '#7c3aed',
+  '#db2777', '#059669', '#ea580c', '#1d4ed8', '#15803d', '#b91c1c',
+];
+
 const BookingLinksTab = ({ propertyId }) => {
   const [copiedKey, setCopiedKey] = useState(null);
+  const [buttonColor, setButtonColor] = useState('#2563eb');
   const appUrl = window.location.origin;
-  const directLink = `${appUrl}/booking?propertyId=${propertyId}`;
-  const embedCode = `<iframe src="${appUrl}/booking?propertyId=${propertyId}" style="width:100%; height:700px; border:none; border-radius:12px; overflow:hidden;"></iframe>`;
+  const colorParam = encodeURIComponent(buttonColor);
+  const directLink = `${appUrl}/booking?propertyId=${propertyId}&buttonColor=${colorParam}`;
+  const embedCode = `<iframe src="${appUrl}/booking?propertyId=${propertyId}&buttonColor=${colorParam}" style="width:100%; height:700px; border:none; border-radius:12px; overflow:hidden;"></iframe>`;
 
   const copy = (text, key) => {
     navigator.clipboard.writeText(text);
@@ -73,6 +80,56 @@ const BookingLinksTab = ({ propertyId }) => {
 
   return (
     <div className="space-y-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <SafeIcon icon={FiIcons.FiDroplet} className="text-gray-600 text-xl mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-bold text-gray-900 mb-1">Button Color</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              Choose a button color for the booking wizard. The links and embed code below will update automatically.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                {PRESET_COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setButtonColor(color)}
+                    className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: buttonColor === color ? '#111827' : 'transparent',
+                      outline: buttonColor === color ? '2px solid #111827' : 'none',
+                      outlineOffset: '2px',
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <label className="text-xs text-gray-500 font-medium">Custom:</label>
+                <input
+                  type="color"
+                  value={buttonColor}
+                  onChange={e => setButtonColor(e.target.value)}
+                  className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                />
+                <span className="text-xs font-mono text-gray-600 w-16">{buttonColor}</span>
+              </div>
+            </div>
+            <div className="mt-3">
+              <p className="text-xs text-gray-500 mb-1">Preview:</p>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg text-white text-sm font-semibold"
+                style={{ backgroundColor: buttonColor }}
+              >
+                Book Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-start gap-3">
           <SafeIcon icon={FiIcons.FiLink} className="text-blue-600 text-xl mt-0.5" />
@@ -134,6 +191,7 @@ const BookingLinksTab = ({ propertyId }) => {
               <li>The direct link is ideal for "Book Now" buttons in navigation menus or email campaigns.</li>
               <li>The embed code places the full booking wizard inside an iframe on any webpage.</li>
               <li>Guests will skip property selection and go straight to the date picker.</li>
+              <li>The button color you select here will apply to all action buttons inside the wizard.</li>
             </ul>
           </div>
         </div>

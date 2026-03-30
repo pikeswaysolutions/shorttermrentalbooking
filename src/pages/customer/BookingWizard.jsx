@@ -94,7 +94,8 @@ const BookingWizard = () => {
   const guestCount = formData.adults + formData.children;
   const maxGuests = formData.property?.maxGuests || 0;
 
-  const wizardBtnColor = settings?.wizardButtonColor || null;
+  const urlButtonColor = searchParams.get('buttonColor');
+  const wizardBtnColor = urlButtonColor || settings?.wizardButtonColor || null;
   const btnStyle = wizardBtnColor
     ? { backgroundColor: wizardBtnColor, borderColor: wizardBtnColor }
     : {};
