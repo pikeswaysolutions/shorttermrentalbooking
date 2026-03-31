@@ -218,16 +218,26 @@ const BookingWizard = () => {
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        window.parent.postMessage(
-          { type: 'BOOKING_WIDGET_RESIZE', height: entry.contentRect.height + 20 },
-          '*'
-        );
-      }
-    });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
+
+    const reportHeight = () => {
+      const height = containerRef.current
+        ? containerRef.current.scrollHeight
+        : document.body.scrollHeight;
+      window.parent.postMessage({ type: 'BOOKING_WIDGET_RESIZE', height: height + 50 }, '*');
+    };
+
+    const resizeObserver = new ResizeObserver(() => reportHeight());
+    resizeObserver.observe(containerRef.current);
+
+    const mutationObserver = new MutationObserver(() => reportHeight());
+    mutationObserver.observe(containerRef.current, { childList: true, subtree: true });
+
+    reportHeight();
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
   }, []);
 
   const getNights = () => {
@@ -418,7 +428,7 @@ const BookingWizard = () => {
   const nights = getNights();
 
   return (
-    <div ref={containerRef} className="max-w-2xl mx-auto px-4 pt-6 pb-28">
+    <div ref={containerRef} className="max-w-2xl mx-auto px-4 pt-6 pb-4">
       <div className="flex items-center justify-between mb-8">
         {steps.map((step, idx) => (
           <div key={idx} className="flex items-center gap-2">
@@ -961,10 +971,7 @@ const BookingWizard = () => {
         </motion.div>
       </AnimatePresence>
 
-      <div className={cn(
-        "p-4 bg-white border-t border-gray-200 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.07)]",
-        isEmbedMode ? "sticky bottom-0" : "fixed bottom-0 left-0 right-0"
-      )}>
+      <div className="p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.07)] mt-6 rounded-b-xl">
         <div className="flex gap-3 max-w-2xl mx-auto">
           {currentStep > 0 && (
             <Button
