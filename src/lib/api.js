@@ -693,9 +693,11 @@ async function triggerConfirmationEmail(bookingId, userId) {
 }
 
 async function triggerPropertyWebhook(bookingId) {
+  console.log('Webhook Trigger Initiated for booking:', bookingId);
   try {
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fire-property-webhook`;
-    await fetch(apiUrl, {
+    console.log('Webhook Edge Function URL:', apiUrl);
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
@@ -704,7 +706,10 @@ async function triggerPropertyWebhook(bookingId) {
       },
       body: JSON.stringify({ bookingId }),
     });
-  } catch {
+    const result = await response.json().catch(() => ({}));
+    console.log('Webhook Edge Function response:', response.status, result);
+  } catch (error) {
+    console.error('Webhook Trigger Failed:', error);
   }
 }
 
