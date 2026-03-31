@@ -172,7 +172,7 @@ export function StoreProvider({ children }) {
   const getAddOnsForProperty = useCallback((propertyId) => {
     return addOns.filter(addon => {
       if (!addon.active) return false;
-      if (!addon.propertyIds || addon.propertyIds.length === 0) return true;
+      if (!addon.propertyIds || addon.propertyIds.length === 0) return false;
       return addon.propertyIds.includes(propertyId);
     });
   }, [addOns]);
