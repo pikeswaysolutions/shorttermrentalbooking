@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { useStore } from '../../context/StoreContext';
@@ -216,15 +216,21 @@ const BookingWizard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const getActualHeight = useCallback(() => {
+    const body = document.body;
+    const html = document.documentElement;
+    return Math.max(
+      body.scrollHeight, body.offsetHeight,
+      html.clientHeight, html.scrollHeight, html.offsetHeight
+    );
+  }, []);
+
+  const reportHeight = useCallback(() => {
+    window.parent.postMessage({ type: 'BOOKING_WIDGET_RESIZE', height: getActualHeight() + 50 }, '*');
+  }, [getActualHeight]);
+
   useEffect(() => {
     if (!containerRef.current) return;
-
-    const reportHeight = () => {
-      const height = containerRef.current
-        ? containerRef.current.scrollHeight
-        : document.body.scrollHeight;
-      window.parent.postMessage({ type: 'BOOKING_WIDGET_RESIZE', height: height + 50 }, '*');
-    };
 
     const resizeObserver = new ResizeObserver(() => reportHeight());
     resizeObserver.observe(containerRef.current);
@@ -238,7 +244,11 @@ const BookingWizard = () => {
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     };
-  }, []);
+  }, [reportHeight]);
+
+  useEffect(() => {
+    reportHeight();
+  }, [formData.property, formData.checkInDate, formData.checkOutDate, formData.guestCount, currentStep, reportHeight]);
 
   const getNights = () => {
     if (!formData.checkInDate || !formData.checkOutDate) return 0;
