@@ -446,80 +446,34 @@ const PropertiesManager = () => {
               </button>
             </div>
 
-            <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-none">
-              <button
-                onClick={() => setActiveTab('general')}
-                className={cn(
-                  "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
-                  activeTab === 'general' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
-                )}
-              >
-                General Details
-              </button>
-              <button
-                onClick={() => setActiveTab('confirmation')}
-                className={cn(
-                  "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
-                  activeTab === 'confirmation' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Confirmation Page
-              </button>
-              {editingId && (
-                <button
-                  onClick={() => setActiveTab('calendar-sync')}
-                  className={cn(
-                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
-                    activeTab === 'calendar-sync' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  Calendar Sync
-                </button>
-              )}
-              {editingId && (
-                <button
-                  onClick={() => setActiveTab('booking-links')}
-                  className={cn(
-                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
-                    activeTab === 'booking-links' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  Booking Links
-                </button>
-              )}
-              {editingId && (
-                <button
-                  onClick={() => setActiveTab('pricing')}
-                  className={cn(
-                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
-                    activeTab === 'pricing' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  Pricing Rules
-                </button>
-              )}
-              {editingId && (
-                <button
-                  onClick={() => setActiveTab('addons')}
-                  className={cn(
-                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
-                    activeTab === 'addons' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  Add-Ons
-                </button>
-              )}
-              {editingId && (
-                <button
-                  onClick={() => setActiveTab('policies')}
-                  className={cn(
-                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
-                    activeTab === 'policies' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  Policies
-                </button>
-              )}
+            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { key: 'general', label: 'General' },
+                  { key: 'confirmation', label: 'Confirmation' },
+                  ...(editingId ? [
+                    { key: 'calendar-sync', label: 'Calendar Sync' },
+                    { key: 'booking-links', label: 'Booking Links' },
+                    { key: 'pricing', label: 'Pricing Rules' },
+                    { key: 'addons', label: 'Add-Ons' },
+                    { key: 'policies', label: 'Policies' },
+                  ] : []),
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveTab(tab.key)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border",
+                      activeTab === tab.key
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-white text-gray-600 border-gray-300 hover:border-gray-400 hover:text-gray-900"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
