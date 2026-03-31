@@ -6,7 +6,6 @@ import { formatCurrency, cn } from '../../lib/utils';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../../common/SafeIcon';
 import PropertyPricingTab from '../../components/admin/PropertyPricingTab';
-import PropertyAddOnsTab from '../../components/admin/PropertyAddOnsTab';
 import PropertyPoliciesTab from '../../components/admin/PropertyPoliciesTab';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -454,8 +453,7 @@ const PropertiesManager = () => {
                   ...(editingId ? [
                     { key: 'calendar-sync', label: 'Calendar Sync' },
                     { key: 'booking-links', label: 'Booking Links' },
-                    { key: 'pricing', label: 'Pricing Rules' },
-                    { key: 'addons', label: 'Add-Ons' },
+                    { key: 'pricing', label: 'Pricing & Add-Ons' },
                     { key: 'policies', label: 'Policies' },
                   ] : []),
                 ].map(tab => (
@@ -752,10 +750,6 @@ const PropertiesManager = () => {
                   <PropertyPricingTab propertyId={editingId} />
                 )}
 
-                {activeTab === 'addons' && editingId && (
-                  <PropertyAddOnsTab propertyId={editingId} />
-                )}
-
                 {activeTab === 'policies' && editingId && (
                   <PropertyPoliciesTab propertyId={editingId} />
                 )}
@@ -876,13 +870,13 @@ const PropertiesManager = () => {
               </form>
             </div>
 
-            {!['pricing', 'addons', 'policies'].includes(activeTab) && (
+            {!['pricing', 'policies'].includes(activeTab) && (
               <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                 <Button onClick={handleSave}>Save Changes</Button>
               </div>
             )}
-            {['pricing', 'addons', 'policies'].includes(activeTab) && (
+            {['pricing', 'policies'].includes(activeTab) && (
               <div className="p-6 border-t border-gray-200 flex justify-end bg-gray-50">
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Close</Button>
               </div>

@@ -8,7 +8,7 @@ import { cn, formatCurrency } from '../../lib/utils';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const EMPTY_FORM = {
+const EMPTY_RULE = {
   name: '',
   ruleType: 'day_of_week',
   days: [],
@@ -20,12 +20,20 @@ const EMPTY_FORM = {
   priority: 0,
 };
 
-const PropertyPricingTab = ({ propertyId }) => {
+const EMPTY_ADDON = {
+  name: '',
+  description: '',
+  price: 50,
+  type: 'flat',
+  active: true,
+};
+
+const PricingRulesSection = ({ propertyId }) => {
   const { pricingRules, addPricingRule, updatePricingRule, deletePricingRule } = useStore();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formData, setFormData] = useState(EMPTY_RULE);
 
   const propertyRules = pricingRules.filter(r => r.propertyId === propertyId);
 
@@ -48,7 +56,7 @@ const PropertyPricingTab = ({ propertyId }) => {
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData(EMPTY_FORM);
+    setFormData(EMPTY_RULE);
   };
 
   const toggleDay = (dayIndex) => {
@@ -61,31 +69,17 @@ const PropertyPricingTab = ({ propertyId }) => {
   };
 
   const handleSave = async () => {
-    if (!formData.name) {
-      alert('Please provide a rule name');
-      return;
-    }
-    if (formData.ruleType === 'day_of_week' && formData.days.length === 0) {
-      alert('Please select at least one day of the week');
-      return;
-    }
-    if (formData.ruleType === 'date_override' && !formData.specificDate) {
-      alert('Please select a specific date');
-      return;
-    }
-    if (formData.ruleType === 'date_range' && (!formData.startDate || !formData.endDate)) {
-      alert('Please select both start and end dates');
-      return;
-    }
-
-    const ruleData = { ...formData, propertyId };
+    if (!formData.name) { alert('Please provide a rule name'); return; }
+    if (formData.ruleType === 'day_of_week' && formData.days.length === 0) { alert('Please select at least one day'); return; }
+    if (formData.ruleType === 'date_override' && !formData.specificDate) { alert('Please select a specific date'); return; }
+    if (formData.ruleType === 'date_range' && (!formData.startDate || !formData.endDate)) { alert('Please select both dates'); return; }
 
     setSaving(true);
     try {
       if (editingId) {
-        await updatePricingRule(editingId, ruleData);
+        await updatePricingRule(editingId, { ...formData, propertyId });
       } else {
-        await addPricingRule(ruleData);
+        await addPricingRule({ ...formData, propertyId });
       }
       handleCancel();
     } catch (err) {
@@ -96,34 +90,22 @@ const PropertyPricingTab = ({ propertyId }) => {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Are you sure you want to delete this rule?')) {
-      try {
-        await deletePricingRule(id);
-      } catch (err) {
-        alert(err.message || 'Failed to delete rule.');
-      }
+    if (confirm('Delete this pricing rule?')) {
+      try { await deletePricingRule(id); } catch (err) { alert(err.message); }
     }
   };
 
   return (
-    <div className="space-y-4">
-      {!isAdding && (
-        <div className="flex justify-end">
-          <Button onClick={() => setIsAdding(true)} icon={FiIcons.FiPlus} size="sm">
-            Add Rule
-          </Button>
-        </div>
-      )}
-
-      {isAdding && (
-        <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4">
-          <h4 className="font-bold text-gray-900">{editingId ? 'Edit Pricing Rule' : 'New Pricing Rule'}</h4>
+    <div className="space-y-3">
+      {isAdding ? (
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+          <h5 className="font-bold text-gray-900 text-sm">{editingId ? 'Edit Rule' : 'New Pricing Rule'}</h5>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Rule Name *</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Rule Name *</label>
             <input
               type="text"
-              className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
+              className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Weekend Peak"
@@ -131,7 +113,7 @@ const PropertyPricingTab = ({ propertyId }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Rule Type *</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Rule Type *</label>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { value: 'day_of_week', label: 'Day of Week' },
@@ -143,7 +125,7 @@ const PropertyPricingTab = ({ propertyId }) => {
                   type="button"
                   onClick={() => setFormData({ ...formData, ruleType: opt.value })}
                   className={cn(
-                    'p-2.5 rounded-lg border-2 font-bold text-sm transition-all',
+                    'p-2 rounded-lg border-2 font-bold text-xs transition-all',
                     formData.ruleType === opt.value
                       ? 'border-primary bg-blue-50 text-primary'
                       : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
@@ -157,15 +139,15 @@ const PropertyPricingTab = ({ propertyId }) => {
 
           {formData.ruleType === 'day_of_week' && (
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Days of Week *</label>
-              <div className="flex flex-wrap gap-2">
+              <label className="block text-xs font-bold text-gray-700 mb-1">Days *</label>
+              <div className="flex flex-wrap gap-1.5">
                 {DAYS.map((day, idx) => (
                   <button
                     key={day}
                     type="button"
                     onClick={() => toggleDay(idx)}
                     className={cn(
-                      'px-3 py-1.5 rounded-full text-sm font-bold transition-all border',
+                      'px-2.5 py-1 rounded-full text-xs font-bold transition-all border',
                       formData.days.includes(idx)
                         ? 'bg-primary text-white border-primary'
                         : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
@@ -180,124 +162,248 @@ const PropertyPricingTab = ({ propertyId }) => {
 
           {formData.ruleType === 'date_override' && (
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Specific Date *</label>
-              <input
-                type="date"
-                className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                value={formData.specificDate}
-                onChange={(e) => setFormData({ ...formData, specificDate: e.target.value })}
-              />
+              <label className="block text-xs font-bold text-gray-700 mb-1">Specific Date *</label>
+              <input type="date" className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+                value={formData.specificDate} onChange={(e) => setFormData({ ...formData, specificDate: e.target.value })} />
             </div>
           )}
 
           {formData.ruleType === 'date_range' && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Start Date *</label>
-                <input
-                  type="date"
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                />
+                <label className="block text-xs font-bold text-gray-700 mb-1">Start Date *</label>
+                <input type="date" className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+                  value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">End Date *</label>
-                <input
-                  type="date"
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                />
+                <label className="block text-xs font-bold text-gray-700 mb-1">End Date *</label>
+                <input type="date" className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+                  value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} />
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Nightly Rate ($) *</label>
-              <input
-                type="number"
-                className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                value={formData.nightlyRate}
-                onChange={(e) => setFormData({ ...formData, nightlyRate: parseFloat(e.target.value) })}
-                min="0"
-                step="10"
-              />
+              <label className="block text-xs font-bold text-gray-700 mb-1">Nightly Rate ($) *</label>
+              <input type="number" className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+                value={formData.nightlyRate} onChange={(e) => setFormData({ ...formData, nightlyRate: parseFloat(e.target.value) })} min="0" step="10" />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Priority</label>
-              <input
-                type="number"
-                className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900"
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                min="0"
-              />
-              <p className="text-xs text-gray-500 mt-1">Higher wins when multiple rules match</p>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Priority</label>
+              <input type="number" className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+                value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })} min="0" />
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <Button onClick={handleSave} disabled={saving}>
-              {editingId ? 'Update Rule' : 'Create Rule'}
+          <div className="flex gap-2 pt-1">
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {editingId ? 'Update' : 'Create'} Rule
             </Button>
-            <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+            <Button size="sm" variant="outline" onClick={handleCancel}>Cancel</Button>
           </div>
         </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsAdding(true)}
+          className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg border border-dashed border-gray-300 text-xs font-bold text-gray-500 hover:border-primary hover:text-primary transition-colors"
+        >
+          <SafeIcon icon={FiIcons.FiPlus} />
+          Add Pricing Rule
+        </button>
       )}
 
-      <div className="space-y-3">
-        {propertyRules.map((rule) => (
-          <div key={rule.id} className="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-bold text-gray-900">{rule.name}</h4>
-                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">
-                  Priority: {rule.priority || 0}
-                </span>
-              </div>
-              <div className="text-sm text-gray-600 space-y-0.5">
-                <p>
-                  <span className="font-semibold">
-                    {rule.ruleType === 'day_of_week' && 'Day of Week'}
-                    {rule.ruleType === 'date_override' && 'Specific Date'}
-                    {rule.ruleType === 'date_range' && 'Date Range'}
-                  </span>
-                </p>
-                {rule.ruleType === 'day_of_week' && rule.days && (
-                  <p className="text-xs text-gray-500">{rule.days.map(d => DAYS[d].slice(0, 3)).join(', ')}</p>
-                )}
-                {rule.ruleType === 'date_override' && rule.specificDate && (
-                  <p className="text-xs text-gray-500">{format(new Date(rule.specificDate + 'T00:00:00'), 'MMM d, yyyy')}</p>
-                )}
-                {rule.ruleType === 'date_range' && rule.startDate && rule.endDate && (
-                  <p className="text-xs text-gray-500">
-                    {format(new Date(rule.startDate + 'T00:00:00'), 'MMM d, yyyy')} – {format(new Date(rule.endDate + 'T00:00:00'), 'MMM d, yyyy')}
-                  </p>
-                )}
-              </div>
+      {propertyRules.map((rule) => (
+        <div key={rule.id} className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm text-gray-900 truncate">{rule.name}</span>
+              <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0">P:{rule.priority || 0}</span>
             </div>
-            <div className="flex items-center gap-3 ml-4">
-              <span className="text-lg font-bold text-primary">{formatCurrency(rule.nightlyRate)}/night</span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => handleEdit(rule)}>
-                  <SafeIcon icon={FiIcons.FiEdit2} />
-                </Button>
-                <Button size="sm" variant="danger" onClick={() => handleDelete(rule.id)}>
-                  <SafeIcon icon={FiIcons.FiTrash2} />
-                </Button>
-              </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {rule.ruleType === 'day_of_week' && rule.days?.map(d => DAYS[d].slice(0, 3)).join(', ')}
+              {rule.ruleType === 'date_override' && rule.specificDate && format(new Date(rule.specificDate + 'T00:00:00'), 'MMM d, yyyy')}
+              {rule.ruleType === 'date_range' && rule.startDate && `${format(new Date(rule.startDate + 'T00:00:00'), 'MMM d')} – ${format(new Date(rule.endDate + 'T00:00:00'), 'MMM d, yyyy')}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+            <span className="font-bold text-sm text-primary">{formatCurrency(rule.nightlyRate)}/night</span>
+            <Button size="sm" variant="outline" onClick={() => handleEdit(rule)}><SafeIcon icon={FiIcons.FiEdit2} /></Button>
+            <Button size="sm" variant="danger" onClick={() => handleDelete(rule.id)}><SafeIcon icon={FiIcons.FiTrash2} /></Button>
+          </div>
+        </div>
+      ))}
+
+      {propertyRules.length === 0 && !isAdding && (
+        <p className="text-xs text-gray-400 text-center py-2">No pricing rules yet. Base nightly rate applies by default.</p>
+      )}
+    </div>
+  );
+};
+
+const AddOnsSection = ({ propertyId }) => {
+  const { addOns, addAddOn, updateAddOn, deleteAddOn } = useStore();
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState(EMPTY_ADDON);
+
+  const propertyAddOns = addOns.filter(a => a.propertyIds && a.propertyIds.includes(propertyId));
+
+  const handleEdit = (addon) => {
+    setEditingId(addon.id);
+    setFormData({ name: addon.name, description: addon.description, price: addon.price, type: addon.type, active: addon.active });
+    setIsAdding(true);
+  };
+
+  const handleCancel = () => {
+    setIsAdding(false);
+    setEditingId(null);
+    setFormData(EMPTY_ADDON);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.description) { alert('Please fill in all required fields'); return; }
+    setSaving(true);
+    try {
+      if (editingId) {
+        const existing = addOns.find(a => a.id === editingId);
+        const propertyIds = existing?.propertyIds || [];
+        await updateAddOn(editingId, {
+          ...formData,
+          propertyIds: propertyIds.includes(propertyId) ? propertyIds : [...propertyIds, propertyId],
+        });
+      } else {
+        await addAddOn({ ...formData, propertyIds: [propertyId] });
+      }
+      handleCancel();
+    } catch (err) {
+      alert(err.message || 'Failed to save add-on.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm('Delete this add-on?')) {
+      try { await deleteAddOn(id); } catch (err) { alert(err.message); }
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {isAdding ? (
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+          <h5 className="font-bold text-gray-900 text-sm">{editingId ? 'Edit Add-on' : 'New Add-on'}</h5>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Name *</label>
+            <input type="text" className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+              value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Early Check-in" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Description *</label>
+            <textarea className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm h-16"
+              value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Brief description" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Price ($) *</label>
+              <input type="number" className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+                value={formData.price} onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })} min="0" step="5" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Type *</label>
+              <select className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+                value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
+                <option value="flat">Flat Rate</option>
+                <option value="per_night">Per Night</option>
+              </select>
             </div>
           </div>
-        ))}
-        {propertyRules.length === 0 && !isAdding && (
-          <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-            <SafeIcon icon={FiIcons.FiDollarSign} className="mx-auto text-3xl text-gray-300 mb-2" />
-            <p className="text-sm text-gray-500">No pricing rules for this property yet.</p>
-            <p className="text-xs text-gray-400 mt-1">Base nightly rate applies by default.</p>
+
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="addon-active-combined" className="w-4 h-4 text-primary border-gray-300 rounded"
+              checked={formData.active} onChange={(e) => setFormData({ ...formData, active: e.target.checked })} />
+            <label htmlFor="addon-active-combined" className="text-xs font-medium text-gray-700">Active (visible to guests)</label>
           </div>
-        )}
+
+          <div className="flex gap-2 pt-1">
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {editingId ? 'Update' : 'Create'} Add-on
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleCancel}>Cancel</Button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsAdding(true)}
+          className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg border border-dashed border-gray-300 text-xs font-bold text-gray-500 hover:border-primary hover:text-primary transition-colors"
+        >
+          <SafeIcon icon={FiIcons.FiPlus} />
+          Add Add-on
+        </button>
+      )}
+
+      {propertyAddOns.map((addon) => (
+        <div key={addon.id} className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm text-gray-900 truncate">{addon.name}</span>
+              <span className={cn(
+                'text-xs px-1.5 py-0.5 rounded font-bold flex-shrink-0',
+                addon.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+              )}>
+                {addon.active ? 'Active' : 'Off'}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">{addon.description}</p>
+          </div>
+          <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+            <span className="font-bold text-sm text-primary">
+              {formatCurrency(addon.price)}{addon.type === 'per_night' ? '/night' : ''}
+            </span>
+            <Button size="sm" variant="outline" onClick={() => handleEdit(addon)}><SafeIcon icon={FiIcons.FiEdit2} /></Button>
+            <Button size="sm" variant="danger" onClick={() => handleDelete(addon.id)}><SafeIcon icon={FiIcons.FiTrash2} /></Button>
+          </div>
+        </div>
+      ))}
+
+      {propertyAddOns.length === 0 && !isAdding && (
+        <p className="text-xs text-gray-400 text-center py-2">No add-ons configured for this property yet.</p>
+      )}
+    </div>
+  );
+};
+
+const PropertyPricingTab = ({ propertyId }) => {
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <SafeIcon icon={FiIcons.FiDollarSign} className="text-gray-700" />
+          <h4 className="font-bold text-gray-900">Pricing Rules</h4>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">
+          Override the base nightly rate for specific days, dates, or date ranges. Higher priority wins when rules overlap.
+        </p>
+        <PricingRulesSection propertyId={propertyId} />
+      </div>
+
+      <div className="border-t border-gray-200 pt-6">
+        <div className="flex items-center gap-2 mb-3">
+          <SafeIcon icon={FiIcons.FiPackage} className="text-gray-700" />
+          <h4 className="font-bold text-gray-900">Add-Ons</h4>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">
+          Optional extras guests can select during booking (e.g., early check-in, welcome basket).
+        </p>
+        <AddOnsSection propertyId={propertyId} />
       </div>
     </div>
   );
