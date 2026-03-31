@@ -31,6 +31,7 @@ function mapPropertyFromDb(row) {
     icalImportUrls: row.ical_import_urls || [],
     icalLastSyncedAt: row.ical_last_synced_at,
     rentalPolicies: row.rental_policies || null,
+    webhookUrl: row.webhook_url || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -50,6 +51,7 @@ function mapPropertyToDb(data) {
     email_templates: data.emailTemplates || {},
     confirmation_page: data.confirmationPage || {},
     rental_policies: data.rentalPolicies !== undefined ? data.rentalPolicies : undefined,
+    webhook_url: data.webhookUrl !== undefined ? (data.webhookUrl || null) : undefined,
     updated_at: new Date().toISOString(),
   };
   if (data.icalImportUrls !== undefined) {
@@ -57,6 +59,9 @@ function mapPropertyToDb(data) {
   }
   if (dbData.rental_policies === undefined) {
     delete dbData.rental_policies;
+  }
+  if (dbData.webhook_url === undefined) {
+    delete dbData.webhook_url;
   }
   return dbData;
 }
@@ -574,6 +579,7 @@ export async function updateBookingStatus(id, status, userId) {
 
   if (status === 'confirmed' && previousStatus !== 'confirmed') {
     triggerConfirmationEmail(id, userId).catch(() => {});
+    triggerPropertyWebhook(id).catch(() => {});
   }
 
   return data;
@@ -683,6 +689,22 @@ async function triggerConfirmationEmail(bookingId, userId) {
       status: 'failed',
       error_message: `Client error: ${err.message}`,
     });
+  }
+}
+
+async function triggerPropertyWebhook(bookingId) {
+  try {
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fire-property-webhook`;
+    await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ bookingId }),
+    });
+  } catch {
   }
 }
 

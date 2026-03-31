@@ -7,6 +7,7 @@ import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../../common/SafeIcon';
 import PropertyPricingTab from '../../components/admin/PropertyPricingTab';
 import PropertyPoliciesTab from '../../components/admin/PropertyPoliciesTab';
+import PropertyAutomationsTab from '../../components/admin/PropertyAutomationsTab';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -455,6 +456,7 @@ const PropertiesManager = () => {
                     { key: 'booking-links', label: 'Booking Links' },
                     { key: 'pricing', label: 'Pricing & Add-Ons' },
                     { key: 'policies', label: 'Policies' },
+                    { key: 'automations', label: 'Automations' },
                   ] : []),
                 ].map(tab => (
                   <button
@@ -754,6 +756,10 @@ const PropertiesManager = () => {
                   <PropertyPoliciesTab propertyId={editingId} />
                 )}
 
+                {activeTab === 'automations' && editingId && (
+                  <PropertyAutomationsTab propertyId={editingId} />
+                )}
+
                 {activeTab === 'calendar-sync' && editingId && (
                   <div className="space-y-6">
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
@@ -870,13 +876,13 @@ const PropertiesManager = () => {
               </form>
             </div>
 
-            {!['pricing', 'policies'].includes(activeTab) && (
+            {!['pricing', 'policies', 'automations'].includes(activeTab) && (
               <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                 <Button onClick={handleSave}>Save Changes</Button>
               </div>
             )}
-            {['pricing', 'policies'].includes(activeTab) && (
+            {['pricing', 'policies', 'automations'].includes(activeTab) && (
               <div className="p-6 border-t border-gray-200 flex justify-end bg-gray-50">
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Close</Button>
               </div>
