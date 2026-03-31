@@ -202,7 +202,10 @@ export function calculatePriceServer(property, checkInDate, checkOutDate, rules,
     const currentDate = new Date(checkIn);
     currentDate.setDate(currentDate.getDate() + i);
     const dayOfWeek = currentDate.getDay();
-    const dateString = currentDate.toISOString().split('T')[0];
+    const y = currentDate.getFullYear();
+    const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const d = String(currentDate.getDate()).padStart(2, '0');
+    const dateString = `${y}-${m}-${d}`;
 
     const matchingRule = rules.find(rule => {
       if (!rule.isActive) return false;
