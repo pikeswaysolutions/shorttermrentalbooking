@@ -62,6 +62,7 @@ const BookingWizard = () => {
   const [showPolicies, setShowPolicies] = useState(false);
   const [hasViewedPolicies, setHasViewedPolicies] = useState(false);
   const [agreedToPolicies, setAgreedToPolicies] = useState(false);
+  const [policiesExpanded, setPoliciesExpanded] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showGuestPanel, setShowGuestPanel] = useState(false);
   const [showAddOnsPanel, setShowAddOnsPanel] = useState(false);
@@ -248,7 +249,7 @@ const BookingWizard = () => {
 
   useEffect(() => {
     reportHeight();
-  }, [formData.property, formData.checkInDate, formData.checkOutDate, formData.guestCount, currentStep, reportHeight]);
+  }, [formData.property, formData.checkInDate, formData.checkOutDate, formData.guestCount, currentStep, agreedToPolicies, policiesExpanded, reportHeight]);
 
   const getNights = () => {
     if (!formData.checkInDate || !formData.checkOutDate) return 0;
@@ -875,43 +876,75 @@ const BookingWizard = () => {
                 <div className="flex items-start gap-3 mb-4">
                   <SafeIcon icon={FiIcons.FiFileText} className="text-amber-600 text-xl mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
-                    <h4 className="font-bold text-gray-900 mb-1">Rental Policies Agreement</h4>
-                    <p className="text-sm text-gray-700 mb-3">You must read and agree to our rental policies before submitting.</p>
-                    <button
-                      type="button"
-                      onClick={() => setShowPolicies(true)}
-                      className="inline-flex items-center gap-2 text-primary font-bold text-sm hover:underline"
-                    >
-                      <SafeIcon icon={FiIcons.FiExternalLink} />
-                      Read Rental Policies
-                      {hasViewedPolicies && (
-                        <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs ml-2">
-                          <SafeIcon icon={FiIcons.FiCheck} className="text-xs" /> Viewed
-                        </span>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h4 className="font-bold text-gray-900">Rental Policies Agreement</h4>
+                      {agreedToPolicies && (
+                        <button
+                          type="button"
+                          onClick={() => setPoliciesExpanded(p => !p)}
+                          className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                        >
+                          <SafeIcon icon={policiesExpanded ? FiIcons.FiChevronUp : FiIcons.FiChevronDown} className="text-xs" />
+                          {policiesExpanded ? 'Collapse' : 'Expand Rental Policies'}
+                        </button>
                       )}
-                    </button>
+                    </div>
+                    {policiesExpanded && (
+                      <>
+                        <p className="text-sm text-gray-700 mb-3 mt-1">You must read and agree to our rental policies before submitting.</p>
+                        <button
+                          type="button"
+                          onClick={() => setShowPolicies(true)}
+                          className="inline-flex items-center gap-2 text-primary font-bold text-sm hover:underline"
+                        >
+                          <SafeIcon icon={FiIcons.FiExternalLink} />
+                          Read Rental Policies
+                          {hasViewedPolicies && (
+                            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs ml-2">
+                              <SafeIcon icon={FiIcons.FiCheck} className="text-xs" /> Viewed
+                            </span>
+                          )}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
-                {hasViewedPolicies && (
-                  <div
-                    onClick={() => setAgreedToPolicies(!agreedToPolicies)}
-                    className="flex items-start gap-3 p-4 bg-white rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-900 transition-colors"
-                  >
-                    <div className={cn(
-                      "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
-                      agreedToPolicies ? "bg-gray-900 border-gray-900" : "border-gray-400 bg-white"
-                    )}>
-                      {agreedToPolicies && <SafeIcon icon={FiIcons.FiCheck} className="text-white text-xs" />}
-                    </div>
-                    <label className="text-sm font-medium text-gray-900 cursor-pointer">
-                      I have read and agree to the rental policies and terms outlined above.
-                    </label>
-                  </div>
+                {policiesExpanded && (
+                  <>
+                    {hasViewedPolicies && (
+                      <div
+                        onClick={() => {
+                          const next = !agreedToPolicies;
+                          setAgreedToPolicies(next);
+                          if (next) setPoliciesExpanded(false);
+                        }}
+                        className="flex items-start gap-3 p-4 bg-white rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-900 transition-colors"
+                      >
+                        <div className={cn(
+                          "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
+                          agreedToPolicies ? "bg-gray-900 border-gray-900" : "border-gray-400 bg-white"
+                        )}>
+                          {agreedToPolicies && <SafeIcon icon={FiIcons.FiCheck} className="text-white text-xs" />}
+                        </div>
+                        <label className="text-sm font-medium text-gray-900 cursor-pointer">
+                          I have read and agree to the rental policies and terms outlined above.
+                        </label>
+                      </div>
+                    )}
+                    {!hasViewedPolicies && (
+                      <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-100 p-3 rounded-lg mt-3">
+                        <SafeIcon icon={FiIcons.FiAlertCircle} className="flex-shrink-0 mt-0.5" />
+                        <span>You must click "Read Rental Policies" above before you can submit your request.</span>
+                      </div>
+                    )}
+                  </>
                 )}
-                {!hasViewedPolicies && (
-                  <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-100 p-3 rounded-lg mt-3">
-                    <SafeIcon icon={FiIcons.FiAlertCircle} className="flex-shrink-0 mt-0.5" />
-                    <span>You must click "Read Rental Policies" above before you can submit your request.</span>
+                {!policiesExpanded && agreedToPolicies && (
+                  <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
+                    <div className="w-4 h-4 rounded bg-green-600 flex items-center justify-center flex-shrink-0">
+                      <SafeIcon icon={FiIcons.FiCheck} className="text-white text-xs" />
+                    </div>
+                    Policies agreed to
                   </div>
                 )}
               </div>
