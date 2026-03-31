@@ -8,8 +8,6 @@ import { useAuth } from '../../context/AuthContext';
 
 const morePaths = [
   '/admin/properties',
-  '/admin/pricing-rules',
-  '/admin/addons',
   '/admin/users',
 ];
 
@@ -51,8 +49,6 @@ const MobileNav = () => {
 
   const moreLinks = [
     { path: '/admin/properties', icon: FiIcons.FiTag, label: 'Properties' },
-    { path: '/admin/pricing-rules', icon: FiIcons.FiDollarSign, label: 'Pricing' },
-    { path: '/admin/addons', icon: FiIcons.FiPackage, label: 'Add-ons' },
     { path: '/admin/users', icon: FiIcons.FiUsers, label: 'Team' },
   ];
 

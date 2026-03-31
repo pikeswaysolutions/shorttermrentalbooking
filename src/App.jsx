@@ -14,8 +14,6 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import BookingsList from './pages/admin/BookingsList';
 import AdminCalendar from './pages/admin/AdminCalendar';
 import PropertiesManager from './pages/admin/PropertiesManager';
-import PricingRulesManager from './pages/admin/PricingRulesManager';
-import AddOnsManager from './pages/admin/AddOnsManager';
 import Settings from './pages/admin/Settings';
 import UserManagement from './pages/admin/UserManagement';
 
@@ -46,8 +44,8 @@ function AppContent() {
             <Route path="/admin/calendar" element={<ProtectedRoute><AdminCalendar /></ProtectedRoute>} />
             <Route path="/admin/properties" element={<ProtectedRoute><PropertiesManager /></ProtectedRoute>} />
             <Route path="/admin/event-types" element={<Navigate to="/admin/properties" />} />
-            <Route path="/admin/pricing-rules" element={<ProtectedRoute><PricingRulesManager /></ProtectedRoute>} />
-            <Route path="/admin/addons" element={<ProtectedRoute><AddOnsManager /></ProtectedRoute>} />
+            <Route path="/admin/pricing-rules" element={<Navigate to="/admin/properties" />} />
+            <Route path="/admin/addons" element={<Navigate to="/admin/properties" />} />
             <Route path="/admin/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
           </Routes>

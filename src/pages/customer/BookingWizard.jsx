@@ -307,6 +307,12 @@ const BookingWizard = () => {
     return count > 0 ? `${count} add-on${count !== 1 ? 's' : ''} selected` : 'No add-ons selected';
   };
 
+  const activePolicies = (() => {
+    const prop = formData.property?.rentalPolicies;
+    const hasPropertyPolicies = prop && Object.values(prop).some(v => v && v.trim() !== '');
+    return hasPropertyPolicies ? prop : (settings?.rentalPolicies || {});
+  })();
+
   const PoliciesModal = () => (
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -323,28 +329,28 @@ const BookingWizard = () => {
           <div>
             <h4 className="font-bold text-lg text-gray-900 mb-2">1. Booking & Payment Terms</h4>
             <p className="text-gray-700 leading-relaxed">
-              {settings.rentalPolicies?.payment ||
+              {activePolicies.payment ||
                 'A non-refundable deposit of 50% is required to secure your booking. The remaining balance is due 7 days prior to the check-in date.'}
             </p>
           </div>
           <div>
             <h4 className="font-bold text-lg text-gray-900 mb-2">2. Cancellation Policy</h4>
             <p className="text-gray-700 leading-relaxed">
-              {settings.rentalPolicies?.cancellation ||
+              {activePolicies.cancellation ||
                 'Cancellations made more than 30 days before the check-in date will receive a 50% refund of the deposit. Cancellations made within 30 days of check-in are non-refundable.'}
             </p>
           </div>
           <div>
             <h4 className="font-bold text-lg text-gray-900 mb-2">3. Liability & Insurance</h4>
             <p className="text-gray-700 leading-relaxed">
-              {settings.rentalPolicies?.liability ||
+              {activePolicies.liability ||
                 'Renters are responsible for any damage to the venue or equipment during the rental period.'}
             </p>
           </div>
           <div>
             <h4 className="font-bold text-lg text-gray-900 mb-2">4. Setup & Cleanup</h4>
             <p className="text-gray-700 leading-relaxed">
-              {settings.rentalPolicies?.cleanup ||
+              {activePolicies.cleanup ||
                 'The venue must be left in the same condition as received. Additional cleaning fees may apply if the property is not properly cleaned after your stay.'}
             </p>
           </div>

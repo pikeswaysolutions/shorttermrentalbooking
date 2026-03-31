@@ -5,6 +5,9 @@ import { Button } from '../../components/ui/Button';
 import { formatCurrency, cn } from '../../lib/utils';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../../common/SafeIcon';
+import PropertyPricingTab from '../../components/admin/PropertyPricingTab';
+import PropertyAddOnsTab from '../../components/admin/PropertyAddOnsTab';
+import PropertyPoliciesTab from '../../components/admin/PropertyPoliciesTab';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -443,11 +446,11 @@ const PropertiesManager = () => {
               </button>
             </div>
 
-            <div className="flex border-b border-gray-200">
+            <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-none">
               <button
                 onClick={() => setActiveTab('general')}
                 className={cn(
-                  "flex-1 py-3 text-sm font-bold border-b-2 transition-colors",
+                  "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
                   activeTab === 'general' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
                 )}
               >
@@ -456,7 +459,7 @@ const PropertiesManager = () => {
               <button
                 onClick={() => setActiveTab('confirmation')}
                 className={cn(
-                  "flex-1 py-3 text-sm font-bold border-b-2 transition-colors",
+                  "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
                   activeTab === 'confirmation' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
                 )}
               >
@@ -466,7 +469,7 @@ const PropertiesManager = () => {
                 <button
                   onClick={() => setActiveTab('calendar-sync')}
                   className={cn(
-                    "flex-1 py-3 text-sm font-bold border-b-2 transition-colors",
+                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
                     activeTab === 'calendar-sync' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
                   )}
                 >
@@ -477,11 +480,44 @@ const PropertiesManager = () => {
                 <button
                   onClick={() => setActiveTab('booking-links')}
                   className={cn(
-                    "flex-1 py-3 text-sm font-bold border-b-2 transition-colors",
+                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
                     activeTab === 'booking-links' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
                   )}
                 >
                   Booking Links
+                </button>
+              )}
+              {editingId && (
+                <button
+                  onClick={() => setActiveTab('pricing')}
+                  className={cn(
+                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
+                    activeTab === 'pricing' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  Pricing Rules
+                </button>
+              )}
+              {editingId && (
+                <button
+                  onClick={() => setActiveTab('addons')}
+                  className={cn(
+                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
+                    activeTab === 'addons' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  Add-Ons
+                </button>
+              )}
+              {editingId && (
+                <button
+                  onClick={() => setActiveTab('policies')}
+                  className={cn(
+                    "flex-shrink-0 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
+                    activeTab === 'policies' ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  Policies
                 </button>
               )}
             </div>
@@ -758,6 +794,18 @@ const PropertiesManager = () => {
                   <BookingLinksTab propertyId={editingId} />
                 )}
 
+                {activeTab === 'pricing' && editingId && (
+                  <PropertyPricingTab propertyId={editingId} />
+                )}
+
+                {activeTab === 'addons' && editingId && (
+                  <PropertyAddOnsTab propertyId={editingId} />
+                )}
+
+                {activeTab === 'policies' && editingId && (
+                  <PropertyPoliciesTab propertyId={editingId} />
+                )}
+
                 {activeTab === 'calendar-sync' && editingId && (
                   <div className="space-y-6">
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
@@ -874,10 +922,17 @@ const PropertiesManager = () => {
               </form>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>Save Changes</Button>
-            </div>
+            {!['pricing', 'addons', 'policies'].includes(activeTab) && (
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
+                <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button onClick={handleSave}>Save Changes</Button>
+              </div>
+            )}
+            {['pricing', 'addons', 'policies'].includes(activeTab) && (
+              <div className="p-6 border-t border-gray-200 flex justify-end bg-gray-50">
+                <Button variant="outline" onClick={() => setIsModalOpen(false)}>Close</Button>
+              </div>
+            )}
           </div>
         </div>
       )}

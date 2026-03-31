@@ -30,6 +30,7 @@ function mapPropertyFromDb(row) {
     icalExportToken: row.ical_export_token,
     icalImportUrls: row.ical_import_urls || [],
     icalLastSyncedAt: row.ical_last_synced_at,
+    rentalPolicies: row.rental_policies || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -48,10 +49,14 @@ function mapPropertyToDb(data) {
     theme_color: data.themeColor,
     email_templates: data.emailTemplates || {},
     confirmation_page: data.confirmationPage || {},
+    rental_policies: data.rentalPolicies !== undefined ? data.rentalPolicies : undefined,
     updated_at: new Date().toISOString(),
   };
   if (data.icalImportUrls !== undefined) {
     dbData.ical_import_urls = data.icalImportUrls;
+  }
+  if (dbData.rental_policies === undefined) {
+    delete dbData.rental_policies;
   }
   return dbData;
 }
