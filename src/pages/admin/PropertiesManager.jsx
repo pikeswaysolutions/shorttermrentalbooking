@@ -65,8 +65,25 @@ const PRESET_COLORS = [
 ];
 
 const BookingLinksTab = ({ propertyId }) => {
+  const { settings, updateSettings } = useStore();
   const [copiedKey, setCopiedKey] = useState(null);
-  const [buttonColor, setButtonColor] = useState('#2563eb');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const DEFAULT_COLOR = '#2563eb';
+  const buttonColor = settings?.wizardButtonColor || DEFAULT_COLOR;
+
+  const setButtonColor = async (color) => {
+    setSaving(true);
+    try {
+      await updateSettings({ ...settings, wizardButtonColor: color });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const appUrl = window.location.origin;
   const colorParam = encodeURIComponent(buttonColor);
   const directLink = `${appUrl}/booking?propertyId=${propertyId}&buttonColor=${colorParam}`;
@@ -84,9 +101,13 @@ const BookingLinksTab = ({ propertyId }) => {
         <div className="flex items-start gap-3">
           <SafeIcon icon={FiIcons.FiDroplet} className="text-gray-600 text-xl mt-0.5" />
           <div className="flex-1">
-            <h4 className="font-bold text-gray-900 mb-1">Button Color</h4>
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="font-bold text-gray-900">Button Color</h4>
+              {saving && <span className="text-xs text-gray-500">Saving...</span>}
+              {saved && !saving && <span className="text-xs text-green-600 font-medium">Saved!</span>}
+            </div>
             <p className="text-sm text-gray-600 mb-3">
-              Choose a button color for the booking wizard. The links and embed code below will update automatically.
+              Choose a button color for the booking wizard. Changes save automatically and update the links below.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
@@ -95,7 +116,8 @@ const BookingLinksTab = ({ propertyId }) => {
                     key={color}
                     type="button"
                     onClick={() => setButtonColor(color)}
-                    className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110"
+                    disabled={saving}
+                    className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 disabled:opacity-50"
                     style={{
                       backgroundColor: color,
                       borderColor: buttonColor === color ? '#111827' : 'transparent',
@@ -111,7 +133,8 @@ const BookingLinksTab = ({ propertyId }) => {
                   type="color"
                   value={buttonColor}
                   onChange={e => setButtonColor(e.target.value)}
-                  className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                  disabled={saving}
+                  className="w-8 h-8 rounded cursor-pointer border border-gray-300 disabled:opacity-50"
                 />
                 <span className="text-xs font-mono text-gray-600 w-16">{buttonColor}</span>
               </div>
