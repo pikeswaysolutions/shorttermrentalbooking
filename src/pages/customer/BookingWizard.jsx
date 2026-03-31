@@ -227,7 +227,7 @@ const BookingWizard = () => {
   }, []);
 
   const reportHeight = useCallback(() => {
-    window.parent.postMessage({ type: 'BOOKING_WIDGET_RESIZE', height: getActualHeight() + 50 }, '*');
+    window.parent.postMessage({ type: 'BOOKING_WIDGET_RESIZE', height: getActualHeight() + 120 }, '*');
   }, [getActualHeight]);
 
   useEffect(() => {
@@ -439,7 +439,7 @@ const BookingWizard = () => {
   const nights = getNights();
 
   return (
-    <div ref={containerRef} className="max-w-2xl mx-auto px-4 pt-6 pb-4">
+    <div ref={containerRef} className="max-w-2xl mx-auto px-4 pt-6 pb-12 mb-12">
       <div className="flex items-center justify-between mb-8">
         {steps.map((step, idx) => (
           <div key={idx} className="flex items-center gap-2">
