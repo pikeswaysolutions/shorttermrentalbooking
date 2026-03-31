@@ -55,6 +55,7 @@ const BookingWizard = () => {
 
   const isEmbedMode = !!searchParams.get('propertyId');
 
+  const containerRef = useRef(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [completed, setCompleted] = useState(false);
@@ -213,6 +214,20 @@ const BookingWizard = () => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        window.parent.postMessage(
+          { type: 'BOOKING_WIDGET_RESIZE', height: entry.contentRect.height + 20 },
+          '*'
+        );
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
   }, []);
 
   const getNights = () => {
@@ -403,7 +418,7 @@ const BookingWizard = () => {
   const nights = getNights();
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-6 pb-28">
+    <div ref={containerRef} className="max-w-2xl mx-auto px-4 pt-6 pb-28">
       <div className="flex items-center justify-between mb-8">
         {steps.map((step, idx) => (
           <div key={idx} className="flex items-center gap-2">

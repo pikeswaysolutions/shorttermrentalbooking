@@ -102,44 +102,36 @@
 &lt;!-- To lock to a specific property, either:<br>
 &nbsp;&nbsp;&nbsp;&nbsp; (a) hard-code the propertyId in the src below, or<br>
 &nbsp;&nbsp;&nbsp;&nbsp; (b) add ?propertyId=YOUR_ID to the URL of this host page --&gt;<br>
-&lt;div id="property-booking-widget"&gt;&lt;/div&gt;<br>
+&lt;iframe id="luxe-booking-frame" src="YOUR_APP_URL/booking?propertyId=YOUR_PROPERTY_ID" style="width:100%; height:700px; border:none; border-radius:8px;" scrolling="no"&gt;&lt;/iframe&gt;<br>
 &lt;script&gt;<br>
-&nbsp;&nbsp;(function() {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;var propertyId = new URLSearchParams(window.location.search).get('propertyId');<br>
-&nbsp;&nbsp;&nbsp;&nbsp;var src = window.location.origin + '/booking';<br>
-&nbsp;&nbsp;&nbsp;&nbsp;if (propertyId) src += '?propertyId=' + encodeURIComponent(propertyId);<br>
-&nbsp;&nbsp;&nbsp;&nbsp;const iframe = document.createElement('iframe');<br>
-&nbsp;&nbsp;&nbsp;&nbsp;iframe.src = src;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.width = '100%';<br>
-&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.height = '700px';<br>
-&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.border = 'none';<br>
-&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.borderRadius = '8px';<br>
-&nbsp;&nbsp;&nbsp;&nbsp;iframe.style.overflow = 'hidden';<br>
-&nbsp;&nbsp;&nbsp;&nbsp;document.getElementById('property-booking-widget').appendChild(iframe);<br>
-&nbsp;&nbsp;})();<br>
+&nbsp;&nbsp;window.addEventListener('message', function(event) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (event.data &amp;&amp; event.data.type === 'BOOKING_WIDGET_RESIZE') {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var frame = document.getElementById('luxe-booking-frame');<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (frame) frame.style.height = event.data.height + 'px';<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;});<br>
 &lt;/script&gt;
         </div>
 
         <h2 style="margin-top: 30px;">Customization Options</h2>
-        <p><strong>Height:</strong> Recommended minimum 700px to accommodate the booking wizard steps</p>
+        <p><strong>Height:</strong> Starts at 700px then auto-resizes to fit content — no double scrollbars on mobile</p>
         <p><strong>Responsive:</strong> Width is set to 100% for mobile compatibility</p>
       </div>
 
       <div class="widget-container">
-        <div id="property-booking-widget-demo"></div>
+        <iframe id="luxe-booking-frame-demo" style="width:100%; height:700px; border:none; border-radius:8px;" scrolling="no"></iframe>
         <script>
           (function() {
             var propertyId = new URLSearchParams(window.location.search).get('propertyId');
             var src = window.location.origin + '/booking';
             if (propertyId) src += '?propertyId=' + encodeURIComponent(propertyId);
-            const iframe = document.createElement('iframe');
-            iframe.src = src;
-            iframe.style.width = '100%';
-            iframe.style.height = '700px';
-            iframe.style.border = 'none';
-            iframe.style.borderRadius = '8px';
-            iframe.style.overflow = 'hidden';
-            document.getElementById('property-booking-widget-demo').appendChild(iframe);
+            document.getElementById('luxe-booking-frame-demo').src = src;
+            window.addEventListener('message', function(event) {
+              if (event.data && event.data.type === 'BOOKING_WIDGET_RESIZE') {
+                var frame = document.getElementById('luxe-booking-frame-demo');
+                if (frame) frame.style.height = event.data.height + 'px';
+              }
+            });
           })();
         </script>
       </div>

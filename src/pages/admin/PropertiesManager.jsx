@@ -90,7 +90,7 @@ const BookingLinksTab = ({ propertyId }) => {
   const appUrl = window.location.origin;
   const colorParam = encodeURIComponent(buttonColor);
   const directLink = `${appUrl}/booking?propertyId=${propertyId}&buttonColor=${colorParam}`;
-  const embedCode = `<iframe src="${appUrl}/booking?propertyId=${propertyId}&buttonColor=${colorParam}" style="width:100%; height:700px; border:none; border-radius:12px; overflow:hidden;"></iframe>`;
+  const embedCode = `<iframe id="luxe-booking-frame-${propertyId}" src="${appUrl}/booking?propertyId=${propertyId}&buttonColor=${colorParam}" style="width:100%; height:700px; border:none; border-radius:12px;" scrolling="no"></iframe>\n<script>\n  window.addEventListener('message', function(event) {\n    if (event.data && event.data.type === 'BOOKING_WIDGET_RESIZE') {\n      var frame = document.getElementById('luxe-booking-frame-${propertyId}');\n      if (frame) frame.style.height = event.data.height + 'px';\n    }\n  });\n<\/script>`;
 
   const copy = (text, key) => {
     navigator.clipboard.writeText(text);
