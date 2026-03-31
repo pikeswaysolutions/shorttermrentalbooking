@@ -555,6 +555,8 @@ export async function createBooking(bookingData, pricingRules, addOns, propertie
 }
 
 export async function updateBookingStatus(id, status, userId) {
+  console.log('updateBookingStatus called. New status:', status, '| Booking ID:', id);
+
   const { data: existing, error: fetchError } = await supabase
     .from('bookings')
     .select('*')
@@ -563,6 +565,7 @@ export async function updateBookingStatus(id, status, userId) {
   if (fetchError) throw fetchError;
 
   const previousStatus = existing.status;
+  console.log('updateBookingStatus: previousStatus =', previousStatus, '| newStatus =', status);
 
   const { data, error } = await supabase
     .from('bookings')
@@ -575,11 +578,14 @@ export async function updateBookingStatus(id, status, userId) {
     .single();
   if (error) throw error;
 
-  await logAudit('booking', id, 'status_changed', userId, { status: previousStatus }, { status });
+  logAudit('booking', id, 'status_changed', userId, { status: previousStatus }, { status }).catch(() => {});
 
   if (status === 'confirmed' && previousStatus !== 'confirmed') {
+    console.log('updateBookingStatus: condition met - firing confirmation email and webhook for booking:', id);
     triggerConfirmationEmail(id, userId).catch(() => {});
     triggerPropertyWebhook(id).catch(() => {});
+  } else {
+    console.log('updateBookingStatus: trigger condition NOT met (status === confirmed:', status === 'confirmed', '| previousStatus !== confirmed:', previousStatus !== 'confirmed', ')');
   }
 
   return data;
