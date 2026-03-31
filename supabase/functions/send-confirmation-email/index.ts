@@ -34,6 +34,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { bookingId } = await req.json();
+    console.log("send-confirmation-email: received bookingId =", bookingId);
 
     if (!bookingId) {
       return new Response(
@@ -51,6 +52,12 @@ Deno.serve(async (req: Request) => {
       .eq("id", bookingId)
       .maybeSingle();
 
+    if (bookingError) {
+      console.error("send-confirmation-email: booking fetch error:", bookingError.message);
+    }
+    if (!booking) {
+      console.error("send-confirmation-email: no booking found for id:", bookingId);
+    }
     if (bookingError || !booking) {
       return new Response(
         JSON.stringify({ error: bookingError?.message || "Booking not found" }),
@@ -67,7 +74,11 @@ Deno.serve(async (req: Request) => {
       .eq("id", 1)
       .maybeSingle();
 
+    console.log("send-confirmation-email: booking found, property =", booking.properties?.name ?? "(none)");
+    console.log("send-confirmation-email: contact_email =", booking.contact_email);
+
     const apiKey = settings?.api_keys_encrypted;
+    console.log("send-confirmation-email: Resend API key present =", !!apiKey);
     if (!apiKey) {
       await supabase
         .from("bookings")
@@ -90,6 +101,7 @@ Deno.serve(async (req: Request) => {
 
     const templateId =
       booking.properties?.email_templates?.confirmationTemplateId;
+    console.log("send-confirmation-email: templateId =", templateId ?? "(none)");
     if (!templateId) {
       await supabase
         .from("bookings")

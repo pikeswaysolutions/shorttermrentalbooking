@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
     console.log("fire-property-webhook: fetching booking record...");
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("id, check_in_date, check_out_date, guest_count, contact_name, contact_email, contact_phone, total_price, updated_at, property_id")
+      .select("id, check_in_date, check_out_date, guest_count, contact_name, contact_email, contact_phone, total_price, updated_at, property_id, description_of_use, notes")
       .eq("id", bookingId)
       .maybeSingle();
 
@@ -105,6 +105,8 @@ Deno.serve(async (req: Request) => {
       contact_phone: booking.contact_phone,
       total_price: Number(booking.total_price),
       confirmed_at: booking.updated_at,
+      intended_use: booking.description_of_use ?? null,
+      additional_comments: booking.notes ?? null,
     };
 
     console.log("fire-property-webhook: sending POST to:", property.webhook_url);
